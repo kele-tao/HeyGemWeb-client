@@ -103,11 +103,18 @@ HeyGem AI is a revolutionary digital human creation platform that packages compl
 ## 🚀 部署指南 | Deployment Guide
 
 ### 系统要求 | System Requirements
-- NVIDIA GPU (推荐8GB+显存)
-- Docker & Docker Compose
-- 50GB+ 磁盘空间
-- Ubuntu 20.04+ / CentOS 8+ / Windows 10+ 操作系统
+NVIDIA GPU (推荐8GB+显存)
+Docker & Docker Compose
+50GB+ 磁盘空间
+Ubuntu 20.04+ / CentOS 8+ / Windows 10+ 操作系统
 
+### 硬件要求 | Hardware Requirements
+CPU: 13th Generation Intel Core i5 - 13400F
+Memory: 32G or more (necessary)
+Graphics Card: RTX - 4070 (Ensure you have an NVIDIA graphics card and the graphics card driver is correctly installed)
+Hard Disk: Free space greater than 100G
+
+### 安装依赖 | Install Dependencies
 ### 方式一：Docker 一键部署 | Docker Deployment
 
 最简单快捷的部署方式，我们已经将所有服务打包成Docker镜像，只需几个命令即可完成部署。
