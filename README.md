@@ -121,7 +121,7 @@ Hard Disk: Free space greater than 100G
 
 1. **克隆仓库 | Clone Repository**
    ```bash
-   git clone https://github.com/yourusername/HeyGemWeb-client.git
+   git clone https://github.com/kele-tao/HeyGemWeb-client.git
    cd HeyGemWeb-client
    ```
 
@@ -142,7 +142,7 @@ Hard Disk: Free space greater than 100G
 
 1. **克隆仓库 | Clone Repository**
    ```bash
-   git clone https://github.com/yourusername/HeyGemWeb-client.git
+   git clone https://github.com/kele-tao/HeyGemWeb-client.git
    cd HeyGemWeb-client
    ```
 
