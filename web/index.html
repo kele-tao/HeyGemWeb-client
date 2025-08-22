@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeyGem · AI 数字人创作平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --main-bg-color: #ffffff;
+            --primary-color: #6a5acd;
+            --primary-light-color: #e9e6ff;
+            --text-color: #333;
+            --text-light-color: #888;
+            --border-color: #e5e7eb;
+            --header-height: 64px;
+            --sidebar-width: 80px;
+            --dark-bg: #1e1e1e;
+            --dark-surface: #2c2c2e;
+            --dark-text: #ffffff;
+            --dark-text-secondary: #a9a9a9;
+            --dark-border: #444;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+        }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-in-up { animation: slideInUp 0.5s ease-out; }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .modal-overlay {
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+        }
+        .modal-content {
+            transform: scale(0.95) translateY(20px);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        .work-card:hover .delete-btn {
+            opacity: 1;
+        }
+        .status-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, createContext, useContext } = React;
+
+        // --- Internationalization (i18n) Setup ---
+        const translations = {
+            en: {
+                // Dashboard
+                'home': 'Home',
+                'shortVideoProd': 'Short Video Production',
+                'shortVideoDesc': 'Quickly produce talking head videos',
+                'createVideo': 'Create Video',
+                'quickCustom': 'Quick Customization',
+                'quickCustomDesc': 'Customize your digital human with just one video',
+                'customizeNow': 'Customize Now',
+                'myWorks': 'My Works',
+                'myModels': 'My Digital Models',
+                'myVoices': 'My Voice Models',
+                'noWorks': 'No works yet. Create a video to get started!',
+                'noModels': 'No models found. Click "Customize Now" to add one.',
+                'noVoices': 'No voice models found. Click "Clone Voice" to add one.',
+                'voice.status.complete': 'Training complete',
+                'video.status.queued': 'Queued',
+                'video.status.processing': 'Processing',
+                'video.status.success': 'Success',
+                'video.status.failed': 'Failed',
+                'downloadVideo': 'Download Video',
+                'auditionText': 'Hello, how can I help you?',
+                'videoDetails': 'Video Details',
+                'creationDate': 'Creation Date',
+                // Editor
+                'back': 'Back',
+                'generateAudio': 'Generate Audio',
+                'synthesizeVideo': 'Synthesize Video',
+                'synthesizing': 'Synthesizing...',
+                'modelList': 'Model List',
+                'selectAvatar': 'Select an avatar',
+                'textSynthesis': 'Text Synthesis',
+                'audioSynthesis': 'Audio Synthesis',
+                'scriptPlaceholder': 'Please enter your video script here...',
+                'selectVoice': 'Select Voice',
+                'cloneVoice': 'Clone Voice',
+                'audition': 'Audition',
+                'auditioning': 'Auditioning...',
+                // Modals
+                'cloneNewVoice': 'Clone New Voice',
+                'voiceNamePlaceholder': 'Enter a name for your voice',
+                'selectAudioFile': 'Click to select audio file',
+                'audioFormatHint': 'Supports MP3, WAV. At least 30 seconds long.',
+                'startTraining': 'Start Training',
+                'training': 'Training...',
+                'quickCustomizationTitle': 'Quick Customization',
+                'modelName': 'Model Name',
+                'modelNamePlaceholder': 'Enter AI model name',
+                'uploadVideo': 'Upload Video',
+                'uploadVideoHint': 'Click to upload or drag & drop video',
+                'submitCustomization': 'Submit for Customization',
+                'submitting': 'Submitting...',
+                // Notifications & Confirmations
+                'deleteConfirmTitle': 'Confirm Deletion',
+                'deleteConfirmMessage': 'Are you sure you want to delete this item? This action cannot be undone.',
+                'cancel': 'Cancel',
+                'confirm': 'Confirm',
+                'deleteSuccess': 'Item deleted successfully.',
+                'error.uploadAvatarFirst': 'Please upload an avatar model first!',
+                'error.selectVoiceAndText': 'Please select a voice model and enter text content',
+                'error.audioSynthFailed': 'Audio synthesis failed',
+                'error.incompleteVoice': 'The selected voice model is incomplete. Please re-clone it.',
+                'success.audioSynth': 'Audio synthesized successfully!',
+                'error.selectAudioAndAvatar': 'Please provide audio and select a digital human model first',
+                'error.videoSynthFailed': 'Video synthesis task submission failed',
+                'success.videoSynthQueued': 'Video synthesis task queued successfully!',
+                'success.videoSynth': 'Video synthesis complete!',
+                'error.voiceNameAndFile': 'Please provide a name and select an audio file',
+                'error.voiceTrainFail': 'Voice training failed',
+                'success.voiceTrain': 'Voice model trained successfully!',
+                'error.avatarNameAndFile': 'Please provide a name and select a video file',
+                'error.avatarUploadFail': 'Avatar upload failed',
+                'success.avatarUpload': 'Digital human model uploaded successfully!',
+                'error.fetchData': 'Failed to fetch data',
+            },
+            zh: {
+                // Dashboard
+                'home': '首页',
+                'shortVideoProd': '短视频制作',
+                'shortVideoDesc': '极速生产口播视频',
+                'createVideo': '创建视频',
+                'quickCustom': '快速定制',
+                'quickCustomDesc': '只需一个视频快速定制',
+                'customizeNow': '立即定制',
+                'myWorks': '我的作品',
+                'myModels': '我的数字模特',
+                'myVoices': '我的音色模型',
+                'noWorks': '暂无作品，快去创建一个视频吧！',
+                'noModels': '暂无模特，点击“立即定制”添加一个。',
+                'noVoices': '暂无音色模型，点击“克隆声音”添加一个。',
+                'voice.status.complete': '训练完成',
+                'video.status.queued': '排队中',
+                'video.status.processing': '处理中',
+                'video.status.success': '成功',
+                'video.status.failed': '失败',
+                'downloadVideo': '下载视频',
+                'auditionText': '你好，请问有什么可以帮您的吗？',
+                'videoDetails': '视频详情',
+                'creationDate': '创建日期',
+                // Editor
+                'back': '返回',
+                'generateAudio': '生成音频',
+                'synthesizeVideo': '合成视频',
+                'synthesizing': '合成中...',
+                'modelList': '模特列表',
+                'selectAvatar': '请选择一个数字人',
+                'textSynthesis': '文本合成',
+                'audioSynthesis': '音频合成',
+                'scriptPlaceholder': '请在这里输入您的视频脚本内容...',
+                'selectVoice': '选择音色',
+                'cloneVoice': '克隆声音',
+                'audition': '试听',
+                'auditioning': '试听中...',
+                // Modals
+                'cloneNewVoice': '克隆新声音',
+                'voiceNamePlaceholder': '为你的声音起个名字',
+                'selectAudioFile': '点击选择音频文件',
+                'audioFormatHint': '支持 MP3, WAV。时长不少于30秒。',
+                'startTraining': '开始训练',
+                'training': '训练中...',
+                'quickCustomizationTitle': '快速定制',
+                'modelName': '模特名称',
+                'modelNamePlaceholder': '请输入AI模特的名称',
+                'uploadVideo': '上传视频',
+                'uploadVideoHint': '点击上传或拖拽原始视频',
+                'submitCustomization': '提交定制',
+                'submitting': '提交中...',
+                // Notifications & Confirmations
+                'deleteConfirmTitle': '确认删除',
+                'deleteConfirmMessage': '您确定要删除这个项目吗？此操作无法撤销。',
+                'cancel': '取消',
+                'confirm': '确认',
+                'deleteSuccess': '删除成功。',
+                'error.uploadAvatarFirst': '请先上传一个数字人模特！',
+                'error.selectVoiceAndText': '请选择声音模型并输入文本内容',
+                'error.audioSynthFailed': '音频合成失败',
+                'error.incompleteVoice': '所选的声音模型数据不完整，请重新克隆。',
+                'success.audioSynth': '音频合成成功！',
+                'error.selectAudioAndAvatar': '请先提供音频并选择数字人模特',
+                'error.videoSynthFailed': '视频合成任务提交失败',
+                'success.videoSynthQueued': '视频合成任务已加入队列！',
+                'success.videoSynth': '视频合成完成！',
+                'error.voiceNameAndFile': '请填写名称并选择音频文件',
+                'error.voiceTrainFail': '声音训练失败',
+                'success.voiceTrain': '声音模型训练成功！',
+                'error.avatarNameAndFile': '请填写名称并选择视频文件',
+                'error.avatarUploadFail': '数字人形象上传失败',
+                'success.avatarUpload': '数字人形象上传成功！',
+                'error.fetchData': '数据加载失败',
+            }
+        };
+
+        const LanguageContext = createContext();
+
+        const LanguageProvider = ({ children }) => {
+            const [language, setLanguage] = useState('zh'); // Default to Chinese
+            const t = (key) => translations[language][key] || key;
+            return (
+                <LanguageContext.Provider value={{ language, setLanguage, t }}>
+                    {children}
+                </LanguageContext.Provider>
+            );
+        };
+
+        // --- Global Context for State Management ---
+        const AppContext = createContext();
+        const NotificationContext = createContext();
+
+        // --- Reusable Components ---
+        const Notification = ({ message, type, onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 5000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            return (
+                <div className={`fixed top-5 right-5 z-[1001] ${colors[type]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 slide-in-up`}>
+                    <i className={`fas ${icons[type]}`}></i>
+                    <span>{message}</span>
+                    <button onClick={onClose} className="ml-4 text-white hover:text-gray-200">&times;</button>
+                </div>
+            );
+        };
+        
+        const LanguageSwitcher = () => {
+            const { language, setLanguage } = useContext(LanguageContext);
+            const toggleLanguage = () => setLanguage(lang => lang === 'en' ? 'zh' : 'en');
+            return (
+                <button onClick={toggleLanguage} className="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-full hover:bg-gray-300 transition-colors">
+                    {language === 'en' ? '中文' : 'EN'}
+                </button>
+            );
+        };
+
+        const ConfirmationModal = ({ title, message, onConfirm, onCancel }) => {
+            const { t } = useContext(LanguageContext);
+            const [isVisible, setIsVisible] = useState(false);
+            useEffect(() => setIsVisible(true), []);
+
+            const handleClose = () => {
+                setIsVisible(false);
+                setTimeout(onCancel, 300);
+            };
+
+            const handleConfirm = () => {
+                setIsVisible(false);
+                setTimeout(onConfirm, 300);
+            };
+
+            return (
+                <div className={`modal-overlay fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] ${isVisible ? 'show' : ''}`}>
+                    <div className="modal-content bg-white p-6 rounded-xl w-full max-w-sm text-center">
+                        <h3 className="text-xl font-bold mb-4 text-gray-800">{title}</h3>
+                        <p className="text-gray-600 mb-6">{message}</p>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={handleClose} className="py-2 px-6 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">{t('cancel')}</button>
+                            <button onClick={handleConfirm} className="py-2 px-6 bg-red-500 text-white rounded-lg hover:bg-red-600">{t('confirm')}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const VideoPlayerModal = ({ video, onClose }) => {
+            const { t } = useContext(LanguageContext);
+            const [isVisible, setIsVisible] = useState(false);
+
+            useEffect(() => {
+                if (video) {
+                    setIsVisible(true);
+                }
+            }, [video]);
+
+            const handleClose = () => {
+                setIsVisible(false);
+                // Wait for animation to finish before calling the parent's onClose
+                setTimeout(onClose, 300); 
+            };
+            
+            if (!video) return null;
+
+            return (
+                <div 
+                    className={`modal-overlay fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 backdrop-blur-sm ${isVisible ? 'show' : ''}`}
+                    onClick={handleClose}
+                >
+                    <div 
+                        className="modal-content bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-5xl p-4 text-white"
+                        onClick={e => e.stopPropagation()}
+                    >
+                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                           <div className="lg:col-span-2 w-full aspect-video bg-black rounded-xl overflow-hidden">
+                               <video src={video.videoUrl} controls autoPlay className="w-full h-full object-contain"/>
+                           </div>
+                           <div className="flex flex-col justify-between p-4">
+                               <div>
+                                   <h3 className="text-2xl font-bold mb-2 break-words">{video.title}</h3>
+                                   <p className="text-sm text-gray-400">{t('creationDate')}: {video.date}</p>
+                               </div>
+                               <div className="space-y-3">
+                                   <a 
+                                       href={video.videoUrl} 
+                                       download={video.title ? `${video.title}.mp4` : 'video.mp4'}
+                                       className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-lg font-semibold"
+                                   >
+                                       <i className="fas fa-download"></i>
+                                       {t('downloadVideo')}
+                                   </a>
+                                   <button 
+                                       onClick={handleClose}
+                                       className="w-full bg-gray-600/50 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition-colors text-lg"
+                                   >
+                                       {t('cancel')}
+                                   </button>
+                               </div>
+                           </div>
+                       </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Page Components ---
+        const DashboardPage = ({ setPage, setActiveProject }) => {
+            const { avatars, generatedVideos, voices, deleteAvatar, deleteGeneratedVideo, deleteVoice, updateVideoStatus } = useContext(AppContext);
+            const { showNotification } = useContext(NotificationContext);
+            const { t } = useContext(LanguageContext);
+            const [showAvatarModal, setShowAvatarModal] = useState(false);
+            const [showVoiceModal, setShowVoiceModal] = useState(false);
+            const [activeTab, setActiveTab] = useState('works');
+            const [confirmDelete, setConfirmDelete] = useState(null);
+            const [playingVideo, setPlayingVideo] = useState(null);
+            const [auditioningVoice, setAuditioningVoice] = useState(null);
+            const audioRef = useRef(null);
+
+            // Polling for video status updates
+            useEffect(() => {
+                const processingVideos = generatedVideos.filter(v => ['排队中', '处理中', 'Queued', 'Processing'].includes(v.status));
+                if (processingVideos.length === 0) return;
+
+                const interval = setInterval(async () => {
+                    const codesToCheck = processingVideos.map(v => v.task_code).filter(Boolean);
+                    if (codesToCheck.length === 0) return;
+                    try {
+                        const response = await fetch('/api/batch-progress-check', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ codes: codesToCheck })
+                        });
+                        const results = await response.json();
+                        results.forEach(result => {
+                            updateVideoStatus(result.code, result.status, result.video_url, result.msg);
+                        });
+                    } catch (error) {
+                        console.error("Polling failed:", error);
+                    }
+                }, 5000); // Poll every 5 seconds
+
+                return () => clearInterval(interval);
+            }, [generatedVideos, updateVideoStatus]);
+
+            const createNewProject = () => {
+                if (avatars.length === 0) {
+                    showNotification(t('error.uploadAvatarFirst'), 'error');
+                    setShowAvatarModal(true);
+                    return;
+                }
+                const newProject = {
+                    id: `proj-${Date.now()}`,
+                    title: `我的AI视频项目 ${new Date().toLocaleDateString()}`,
+                    avatarId: avatars[0].id,
+                    script: '你好，欢迎来到HeyGem · AI 数字人创作平台。在这里，你可以轻松创造出属于自己的专业数字人视频。',
+                    audioUrl: null,
+                    videoUrl: null,
+                };
+                setActiveProject(newProject);
+                setPage('editor');
+            };
+            
+            const openProject = (video) => {
+                 if (video.status === '成功' || video.status === 'Success') {
+                    setPlayingVideo(video);
+                } else {
+                    showNotification("视频仍在处理中，请稍后", "info");
+                }
+            }
+
+            const handleDeleteClick = (type, id) => {
+                setConfirmDelete({ type, id });
+            };
+
+            const handleConfirmDelete = () => {
+                if (!confirmDelete) return;
+                const { type, id } = confirmDelete;
+                if (type === 'video') deleteGeneratedVideo(id);
+                if (type === 'avatar') deleteAvatar(id);
+                if (type === 'voice') deleteVoice(id);
+                showNotification(t('deleteSuccess'), 'success');
+                setConfirmDelete(null);
+            };
+            
+            const handleAuditionVoice = async (voice) => {
+                if (!voice || !voice.asr_format_audio_url || !voice.reference_audio_text) {
+                    showNotification(t('error.incompleteVoice'), 'error');
+                    return;
+                }
+                setAuditioningVoice(voice.id);
+                try {
+                    const response = await fetch('/api/audition-voice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            voice_id: voice.id,
+                            text: t('auditionText'),
+                            reference_audio: voice.asr_format_audio_url,
+                            reference_text: voice.reference_audio_text
+                        })
+                    });
+                    if (!response.ok) throw new Error(t('error.audioSynthFailed'));
+                    
+                    const data = await response.json();
+                    const audio = new Audio(data.url);
+                    audio.play();
+                    audio.onended = () => setAuditioningVoice(null);
+
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                    setAuditioningVoice(null);
+                }
+            };
+            
+            const isVoiceComplete = (voice) => voice.status === 'Training complete' || voice.status === '训练完成';
+
+            const VideoStatusIndicator = ({ status }) => {
+                const statusMap = {
+                    '排队中': { text: t('video.status.queued'), icon: 'fas fa-clock', color: 'bg-blue-500/70' },
+                    'Queued': { text: t('video.status.queued'), icon: 'fas fa-clock', color: 'bg-blue-500/70' },
+                    '处理中': { text: t('video.status.processing'), icon: 'fas fa-spinner fa-spin', color: 'bg-yellow-500/70' },
+                    'Processing': { text: t('video.status.processing'), icon: 'fas fa-spinner fa-spin', color: 'bg-yellow-500/70' },
+                    '失败': { text: t('video.status.failed'), icon: 'fas fa-exclamation-triangle', color: 'bg-red-500/70' },
+                    'Failed': { text: t('video.status.failed'), icon: 'fas fa-exclamation-triangle', color: 'bg-red-500/70' },
+                };
+                const currentStatus = statusMap[status];
+                if (!currentStatus) return null;
+                return <div className={`status-overlay ${currentStatus.color}`}><i className={`${currentStatus.icon} text-2xl mb-2`}></i><p>{currentStatus.text}</p></div>;
+            };
+
+            return (
+                <div className="flex h-screen bg-[var(--bg-color)]">
+                    {confirmDelete && (
+                        <ConfirmationModal 
+                            title={t('deleteConfirmTitle')}
+                            message={t('deleteConfirmMessage')}
+                            onConfirm={handleConfirmDelete}
+                            onCancel={() => setConfirmDelete(null)}
+                        />
+                    )}
+                    <VideoPlayerModal video={playingVideo} onClose={() => setPlayingVideo(null)} />
+                    <div className="sidebar w-[var(--sidebar-width)] bg-white flex flex-col items-center py-5 border-r border-[var(--border-color)] flex-shrink-0">
+                        <div className="font-bold text-lg text-[var(--primary-color)] mb-10">HeyGem</div>
+                        <div className="nav-item w-16 h-16 flex flex-col items-center justify-center rounded-lg bg-[var(--primary-light-color)] text-[var(--primary-color)]">
+                            <i className="fas fa-home text-xl"></i>
+                            <span className="text-xs mt-1">{t('home')}</span>
+                        </div>
+                    </div>
+                    <main className="flex-1 flex flex-col overflow-hidden">
+                        <header className="h-[var(--header-height)] bg-white flex-shrink-0 flex items-center justify-end px-6 border-b border-[var(--border-color)]">
+                           <LanguageSwitcher />
+                        </header>
+                        <div className="flex-1 p-6 overflow-y-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div className="banner bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-2xl font-bold">{t('shortVideoProd')}</h2>
+                                        <p>{t('shortVideoDesc')}</p>
+                                    </div>
+                                    <button onClick={createNewProject} className="bg-white text-purple-600 font-bold py-2 px-5 rounded-full flex items-center gap-2 hover:scale-105 transition-transform">
+                                        <i className="fas fa-video"></i> {t('createVideo')}
+                                    </button>
+                                </div>
+                                <div className="banner bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl p-6 text-white flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-2xl font-bold">{t('quickCustom')}</h2>
+                                        <p>{t('quickCustomDesc')}</p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <button onClick={() => setShowAvatarModal(true)} className="bg-white text-blue-600 font-bold py-2 px-5 rounded-full hover:scale-105 transition-transform">
+                                            {t('customizeNow')}
+                                        </button>
+                                         <button onClick={() => setShowVoiceModal(true)} className="bg-white text-cyan-600 font-bold py-2 px-5 rounded-full hover:scale-105 transition-transform">
+                                            {t('cloneVoice')}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="works-section bg-white p-6 rounded-xl">
+                                <div className="tabs flex items-center border-b border-[var(--border-color)] mb-6">
+                                    <div onClick={() => setActiveTab('works')} className={`tab-item py-2 px-4 cursor-pointer text-lg ${activeTab === 'works' ? 'text-[var(--primary-color)] border-b-2 border-[var(--primary-color)] font-bold' : 'text-[var(--text-light-color)]'}`}>
+                                        {t('myWorks')} <span>({generatedVideos.length})</span>
+                                    </div>
+                                    <div onClick={() => setActiveTab('models')} className={`tab-item py-2 px-4 cursor-pointer text-lg ${activeTab === 'models' ? 'text-[var(--primary-color)] border-b-2 border-[var(--primary-color)] font-bold' : 'text-[var(--text-light-color)]'}`}>
+                                        {t('myModels')} <span>({avatars.length})</span>
+                                    </div>
+                                    <div onClick={() => setActiveTab('voices')} className={`tab-item py-2 px-4 cursor-pointer text-lg ${activeTab === 'voices' ? 'text-[var(--primary-color)] border-b-2 border-[var(--primary-color)] font-bold' : 'text-[var(--text-light-color)]'}`}>
+                                        {t('myVoices')} <span>({voices.length})</span>
+                                    </div>
+                                </div>
+                                {activeTab === 'works' && (
+                                    <div className="works-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                        {generatedVideos.map(video => (
+                                            <div key={video.id} className="work-card rounded-lg overflow-hidden bg-[var(--bg-color)] cursor-pointer hover:shadow-lg transition-shadow relative" onClick={() => openProject(video)}>
+                                                <div className="thumbnail h-40 bg-gray-800 flex items-center justify-center">
+                                                    {video.status === '成功' || video.status === 'Success' ? (
+                                                        <video src={video.videoUrl} className="w-full h-full object-cover"></video>
+                                                    ) : (
+                                                        <img src={video.thumbUrl || avatars.find(a => a.id === video.avatarId)?.thumbUrl} className="w-full h-full object-cover opacity-50"/>
+                                                    )}
+                                                    <VideoStatusIndicator status={video.status} />
+                                                </div>
+                                                <div className="card-info p-3">
+                                                    <h3 className="font-bold truncate">{video.title}</h3>
+                                                    <p className="text-sm text-gray-500">{video.date}</p>
+                                                </div>
+                                                <div onClick={(e) => {e.stopPropagation(); handleDeleteClick('video', video.id)}} className="delete-btn hover:bg-red-500"><i className="fas fa-trash-alt fa-sm"></i></div>
+                                            </div>
+                                        ))}
+                                        {generatedVideos.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">{t('noWorks')}</p>}
+                                    </div>
+                                )}
+                                {activeTab === 'models' && (
+                                     <div className="works-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                        {avatars.map(avatar => (
+                                            <div key={avatar.id} className="work-card rounded-lg overflow-hidden bg-[var(--bg-color)] relative">
+                                                <div className="thumbnail h-40 bg-gray-200 flex items-center justify-center">
+                                                    <img src={avatar.thumbUrl} alt={avatar.title} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="card-info p-3">
+                                                    <h3 className="font-bold truncate">{avatar.title}</h3>
+                                                    <p className="text-sm text-gray-500">{avatar.date}</p>
+                                                </div>
+                                                <div onClick={(e) => {e.stopPropagation(); handleDeleteClick('avatar', avatar.id)}} className="delete-btn hover:bg-red-500"><i className="fas fa-trash-alt fa-sm"></i></div>
+                                            </div>
+                                        ))}
+                                        {avatars.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">{t('noModels')}</p>}
+                                    </div>
+                                )}
+                                 {activeTab === 'voices' && (
+                                     <div className="works-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                        {voices.map(voice => (
+                                            <div key={voice.id} className="work-card flex flex-col h-36 rounded-lg overflow-hidden bg-[var(--bg-color)] relative p-3">
+                                                {/* Delete button: top-right */}
+                                                <div onClick={(e) => {e.stopPropagation(); handleDeleteClick('voice', voice.id)}} className="delete-btn hover:bg-red-500"><i className="fas fa-trash-alt fa-sm"></i></div>
+                                                
+                                                {/* Voice info */}
+                                                <div>
+                                                    <h3 className="font-bold truncate text-lg">{voice.name}</h3>
+                                                    <p className="text-sm text-gray-500">{voice.date}</p>
+                                                </div>
+
+                                                {/* Spacer to push content to top and bottom */}
+                                                <div className="flex-grow"></div>
+
+                                                {/* Bottom row: status and audition button */}
+                                                <div className="flex justify-between items-center">
+                                                    <p className={`text-xs px-2 py-1 rounded-full self-start ${isVoiceComplete(voice) ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>
+                                                        {isVoiceComplete(voice) ? t('voice.status.complete') : voice.status}
+                                                    </p>
+                                                    <button onClick={() => handleAuditionVoice(voice)} disabled={auditioningVoice === voice.id || !isVoiceComplete(voice)} className="text-purple-500 hover:text-purple-700 disabled:opacity-50 text-xl">
+                                                        {auditioningVoice === voice.id ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-play-circle"></i>}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {voices.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">{t('noVoices')}</p>}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </main>
+                    {showAvatarModal && <AvatarUploadModal onClose={() => setShowAvatarModal(false)} />}
+                    {showVoiceModal && <VoiceUploadModal onClose={() => setShowVoiceModal(false)} />}
+                </div>
+            );
+        };
+
+        // Right-side panel for synthesis options in the editor
+        const SynthesisPanel = ({ project, setProject, selectedVoice, setSelectedVoice, handleGenerateAudio, isGeneratingAudio, uploadedAudioFile, handleAudioFileSelect }) => {
+            const { voices } = useContext(AppContext);
+            const { t } = useContext(LanguageContext);
+            const [activeTab, setActiveTab] = useState('text'); // 'text' or 'audio'
+            const fileInputRef = useRef(null);
+            const [auditioningVoice, setAuditioningVoice] = useState(null);
+            
+            // Derived state for audio preview
+            const audioUrl = uploadedAudioFile ? URL.createObjectURL(uploadedAudioFile) : project.audioUrl;
+            const isVoiceComplete = (voice) => voice.status === 'Training complete' || voice.status === '训练完成';
+            
+            const handleAuditionVoice = async (e) => {
+                e.stopPropagation();
+                if (!selectedVoice) return;
+                const voice = voices.find(v => v.id === selectedVoice);
+                if (!voice || !voice.asr_format_audio_url || !voice.reference_audio_text) {
+                    showNotification(t('error.incompleteVoice'), 'error');
+                    return;
+                }
+                setAuditioningVoice(voice.id);
+                try {
+                    const response = await fetch('/api/audio-synthesis', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: "你好，这是我的声音，希望你喜欢。",
+                            reference_audio: voice.asr_format_audio_url,
+                            reference_text: voice.reference_audio_text
+                        })
+                    });
+                    if (!response.ok) throw new Error(t('error.audioSynthFailed'));
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const audio = new Audio(url);
+                    audio.play();
+                    audio.onended = () => setAuditioningVoice(null);
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                    setAuditioningVoice(null);
+                }
+            };
+
+            return (
+                <div className="editor-panel p-4 flex flex-col bg-[var(--dark-surface)]">
+                    <div className="flex bg-[#3a3a3c] rounded-lg p-1 mb-4">
+                        <button onClick={() => setActiveTab('text')} className={`flex-1 py-2 rounded-md text-sm ${activeTab === 'text' ? 'bg-[#555] text-white' : 'text-gray-400'}`}>{t('textSynthesis')}</button>
+                        <button onClick={() => setActiveTab('audio')} className={`flex-1 py-2 rounded-md text-sm ${activeTab === 'audio' ? 'bg-[#555] text-white' : 'text-gray-400'}`}>{t('audioSynthesis')}</button>
+                    </div>
+
+                    {activeTab === 'text' && (
+                        <div className="flex flex-col flex-grow">
+                            <textarea
+                                value={project.script || ''}
+                                onChange={(e) => setProject({...project, script: e.target.value})}
+                                placeholder={t('scriptPlaceholder')}
+                                className="text-synthesis-area bg-[#1e1e1e] border border-[var(--dark-border)] rounded-lg p-4 flex-grow resize-none text-[var(--dark-text-secondary)] w-full focus:outline-none focus:border-[var(--primary-color)]"
+                            />
+                            <div className="editor-footer mt-4 flex items-center justify-between">
+                                <div className="flex items-center gap-2 w-1/2">
+                                    <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)} className="voice-select bg-[#1e1e1e] border border-[var(--dark-border)] text-[var(--dark-text)] p-2 rounded-md flex-grow">
+                                        <option value="">{t('selectVoice')}</option>
+                                        {voices.filter(isVoiceComplete).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                    </select>
+                                    <button onClick={handleAuditionVoice} disabled={!selectedVoice || auditioningVoice === selectedVoice} className="text-purple-400 hover:text-purple-300 disabled:opacity-50 text-xl px-2">
+                                        {auditioningVoice === selectedVoice ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-play-circle"></i>}
+                                    </button>
+                                </div>
+                                <button onClick={handleGenerateAudio} disabled={isGeneratingAudio} className="audition-btn bg-[var(--primary-color)] text-white py-2 px-4 rounded-md disabled:opacity-50">
+                                    {isGeneratingAudio ? <><i className="fas fa-spinner fa-spin mr-1"></i>{t('auditioning')}</> : t('generateAudio')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'audio' && (
+                        <div className="flex flex-col flex-grow items-center justify-center">
+                             <div onClick={() => fileInputRef.current.click()} className="w-full h-full p-8 border-2 border-dashed border-[#555] rounded-lg text-center cursor-pointer hover:border-[var(--primary-color)] flex flex-col items-center justify-center">
+                                <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleAudioFileSelect} className="hidden"/>
+                                <i className="fas fa-upload text-3xl text-gray-400 mb-2"></i>
+                                <p className="text-gray-300">{uploadedAudioFile ? uploadedAudioFile.name : t('uploadAudioHint')}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {audioUrl && (
+                        <div className="mt-4">
+                            <p className="text-sm text-gray-400 mb-2">{t('audition')}:</p>
+                            <audio key={audioUrl} src={audioUrl} controls className="w-full h-10"/>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Editor Page (Restructured with centralized state management)
+        const EditorPage = ({ setPage, project, setProject }) => {
+            const { voices, avatars, addGeneratedVideo } = useContext(AppContext);
+            const { showNotification } = useContext(NotificationContext);
+            const { t } = useContext(LanguageContext);
+
+            // Local UI state, not project data
+            const [selectedVoice, setSelectedVoice] = useState('');
+            const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [uploadedAudioFile, setUploadedAudioFile] = useState(null);
+            const [isEditingTitle, setIsEditingTitle] = useState(false);
+
+            useEffect(() => {
+                if (voices.length > 0 && !selectedVoice) {
+                    const firstVoice = voices.find(v => v.status === 'Training complete' || v.status === '训练完成');
+                    if (firstVoice) setSelectedVoice(firstVoice.id);
+                }
+            }, [voices]);
+
+            const handleGenerateAudio = async () => {
+                if (!selectedVoice || !project.script.trim()) {
+                    showNotification(t('error.selectVoiceAndText'), 'error');
+                    return;
+                }
+                const voice = voices.find(v => v.id === selectedVoice);
+                if (!voice || !voice.asr_format_audio_url || !voice.reference_audio_text) {
+                    showNotification(t('error.incompleteVoice'), 'error');
+                    return;
+                }
+
+                setIsGeneratingAudio(true);
+                setUploadedAudioFile(null); // Clear any uploaded file
+                try {
+                    const response = await fetch('/api/audio-synthesis', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: project.script,
+                            reference_audio: voice.asr_format_audio_url,
+                            reference_text: voice.reference_audio_text
+                        })
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || t('error.audioSynthFailed'));
+                    }
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    setProject({...project, audioUrl: url });
+                    showNotification(t('success.audioSynth'), 'success');
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    setIsGeneratingAudio(false);
+                }
+            };
+            
+            const handleAudioFileSelect = (e) => {
+                const file = e.target.files[0];
+                if(file){
+                    setUploadedAudioFile(file);
+                    setProject({...project, audioUrl: null, script: `Audio: ${file.name}`});
+                }
+            };
+
+            const handleSynthesizeVideo = async () => {
+                let audioSourceBlob;
+                if (uploadedAudioFile) {
+                    audioSourceBlob = uploadedAudioFile;
+                } else if (project.audioUrl) {
+                    audioSourceBlob = await (await fetch(project.audioUrl)).blob();
+                }
+
+                if (!audioSourceBlob || !project.avatarId) {
+                    showNotification(t('error.selectAudioAndAvatar'), 'error');
+                    return;
+                }
+
+                setIsSubmitting(true);
+                const avatar = avatars.find(a => a.id === project.avatarId);
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('audio_file', new File([audioSourceBlob], "audio.wav", { type: "audio/wav" }));
+                    formData.append('video_path', avatar.videoPath);
+                    formData.append('project_title', project.title);
+                    formData.append('avatar_id', avatar.id);
+                    
+                    const response = await fetch(`/api/video-synthesis`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                         const errorData = await response.json();
+                         throw new Error(errorData.detail || t('error.videoSynthFailed'));
+                    }
+
+                    showNotification(t('success.videoSynthQueued'), 'success');
+                    setPage('dashboard'); // Navigate to dashboard to see the progress
+
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            const selectedAvatarData = avatars.find(a => a.id === project.avatarId);
+
+            return (
+                <div className="editor-page bg-[var(--dark-bg)] text-[var(--dark-text)] h-screen flex flex-col">
+                    <header className="editor-header h-[var(--header-height)] bg-[var(--dark-surface)] flex items-center px-6 border-b border-[var(--dark-border)] flex-shrink-0">
+                        <div onClick={() => setPage('dashboard')} className="back-btn flex items-center cursor-pointer text-[var(--dark-text-secondary)] hover:text-white">
+                            <i className="fas fa-chevron-left mr-2"></i>
+                            <span>{t('back')}</span>
+                        </div>
+                        <div className="video-title-editor mx-auto text-lg flex items-center gap-2">
+                           {isEditingTitle ? (
+                                <input
+                                    type="text"
+                                    value={project.title}
+                                    onChange={(e) => setProject({...project, title: e.target.value})}
+                                    onBlur={() => setIsEditingTitle(false)}
+                                    onKeyPress={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
+                                    className="bg-gray-700 text-white px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    autoFocus
+                                />
+                            ) : (
+                                <span onClick={() => setIsEditingTitle(true)}>{project.title}</span>
+                            )}
+                             <i className="fas fa-edit cursor-pointer text-gray-400 hover:text-white" onClick={() => setIsEditingTitle(true)}></i>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <LanguageSwitcher />
+                            <button onClick={handleSynthesizeVideo} disabled={isSubmitting || (!project.audioUrl && !uploadedAudioFile)} className="synthesize-btn bg-[var(--primary-color)] text-white border-none py-2 px-4 rounded-md cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isSubmitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>{t('synthesizing')}</> : t('synthesizeVideo')}
+                            </button>
+                        </div>
+                    </header>
+                    <main className="editor-main grid grid-cols-[280px_1fr_320px] flex-grow overflow-hidden">
+                        <div className="editor-panel p-4 border-r border-[var(--dark-border)] overflow-y-auto bg-[var(--dark-surface)]">
+                            <h4 className="text-lg mb-4">{t('modelList')}</h4>
+                            {avatars.map(avatar => (
+                                <div key={avatar.id} onClick={() => setProject({...project, avatarId: avatar.id, videoUrl: null})} className={`model-card bg-[#1e1e1e] border rounded-lg p-3 mb-3 cursor-pointer ${project.avatarId === avatar.id ? 'border-[var(--primary-color)]' : 'border-[var(--dark-border)]'}`}>
+                                    <img src={avatar.thumbUrl} alt={avatar.title} className="w-full h-24 object-cover rounded-md mb-2"/>
+                                    <p className="text-center text-sm">{avatar.title}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="canvas-panel flex items-center justify-center p-6 w-full h-full">
+                          <div className="video-preview w-full h-full max-w-full max-h-full flex items-center justify-center">
+                            <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                              {project.videoUrl ? (
+                                <video
+                                  key={project.videoUrl}
+                                  src={project.videoUrl}
+                                  controls
+                                  autoPlay
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              ) : selectedAvatarData ? (
+                                <img
+                                  src={selectedAvatarData.thumbUrl}
+                                  alt={selectedAvatarData.title}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                                  {t('selectAvatar')}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <SynthesisPanel 
+                            project={project} 
+                            setProject={setProject}
+                            selectedVoice={selectedVoice}
+                            setSelectedVoice={setSelectedVoice}
+                            handleGenerateAudio={handleGenerateAudio}
+                            isGeneratingAudio={isGeneratingAudio}
+                            uploadedAudioFile={uploadedAudioFile}
+                            handleAudioFileSelect={handleAudioFileSelect}
+                        />
+                    </main>
+                </div>
+            );
+        };
+        
+        // --- Modal Components (Restyled and Internationalized) ---
+        const VoiceUploadModal = ({ onClose }) => {
+            const { addVoice } = useContext(AppContext);
+            const { showNotification } = useContext(NotificationContext);
+            const { t } = useContext(LanguageContext);
+            const [voiceName, setVoiceName] = useState('');
+            const [audioFile, setAudioFile] = useState(null);
+            const [isUploading, setIsUploading] = useState(false);
+            const fileInputRef = useRef(null);
+
+            const handleFileSelect = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setAudioFile(file);
+                    if (!voiceName) setVoiceName(file.name.replace(/\.[^/.]+$/, ""));
+                }
+            };
+
+            const handleUpload = async () => {
+                if (!voiceName || !audioFile) {
+                    showNotification(t('error.voiceNameAndFile'), 'error');
+                    return;
+                }
+                setIsUploading(true);
+                const formData = new FormData();
+                formData.append('audio_file', audioFile);
+                try {
+                    const response = await fetch('/api/model-training', { method: 'POST', body: formData });
+                     if (!response.ok) {
+                         const errorData = await response.json();
+                         throw new Error(errorData.detail || t('error.voiceTrainFail'));
+                    }
+                    const data = await response.json();
+                    addVoice({
+                        id: 'voice-' + Date.now(),
+                        name: voiceName,
+                        status: 'Training complete',
+                        date: new Date().toLocaleDateString(),
+                        asr_format_audio_url: data.asr_format_audio_url,
+                        reference_audio_text: data.reference_audio_text
+                    });
+                    showNotification(t('success.voiceTrain'), 'success');
+                    onClose();
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    setIsUploading(false);
+                }
+            };
+
+            return (
+                <div className="modal-overlay fixed inset-0 bg-black/70 flex items-center justify-center z-[1000] show">
+                    <div className="modal-content bg-[var(--dark-surface)] text-white p-6 rounded-xl w-full max-w-md relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+                        <h3 className="text-xl font-bold mb-6 text-center">{t('cloneNewVoice')}</h3>
+                        <div className="space-y-4">
+                            <input type="text" value={voiceName} onChange={(e) => setVoiceName(e.target.value)} className="w-full p-3 bg-[#3a3a3c] border border-[#555] rounded-lg" placeholder={t('voiceNamePlaceholder')}/>
+                            <div onClick={() => fileInputRef.current.click()} className="w-full p-8 border-2 border-dashed border-[#555] rounded-lg text-center cursor-pointer hover:border-[var(--primary-color)]">
+                                <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileSelect} className="hidden"/>
+                                <i className="fas fa-upload text-3xl text-gray-400 mb-2"></i>
+                                <p className="text-gray-300">{audioFile ? audioFile.name : t('selectAudioFile')}</p>
+                                <p className="text-sm text-gray-500">{t('audioFormatHint')}</p>
+                            </div>
+                            <button onClick={handleUpload} disabled={isUploading} className="w-full py-3 px-4 bg-[var(--primary-color)] text-white rounded-lg disabled:opacity-50 font-bold">
+                                {isUploading ? <><i className="fas fa-spinner fa-spin mr-2"></i>{t('training')}</> : t('startTraining')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const AvatarUploadModal = ({ onClose }) => {
+            const { addAvatar } = useContext(AppContext);
+            const { showNotification } = useContext(NotificationContext);
+            const { t } = useContext(LanguageContext);
+            const [avatarName, setAvatarName] = useState('');
+            const [videoFile, setVideoFile] = useState(null);
+            const [isUploading, setIsUploading] = useState(false);
+            const fileInputRef = useRef(null);
+            
+            const handleFileSelect = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setVideoFile(file);
+                    if (!avatarName) setAvatarName(file.name.replace(/\.[^/.]+$/, ""));
+                }
+            };
+
+            const handleUpload = async () => {
+                if (!avatarName || !videoFile) {
+                    showNotification(t('error.avatarNameAndFile'), 'error');
+                    return;
+                }
+                setIsUploading(true);
+                const formData = new FormData();
+                formData.append('video_file', videoFile);
+                formData.append('title', avatarName);
+                try {
+                    const response = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+                    if (!response.ok) {
+                         const errorData = await response.json();
+                         throw new Error(errorData.detail || t('error.avatarUploadFail'));
+                    }
+                    const data = await response.json();
+                    addAvatar(data);
+                    showNotification(t('success.avatarUpload'), 'success');
+                    onClose();
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    setIsUploading(false);
+                }
+            };
+
+            return (
+                 <div className="modal-overlay fixed inset-0 bg-black/80 flex items-center justify-center z-[1000] show">
+                    <div className="modal-content bg-[#2c2c2e] text-white p-6 rounded-xl w-full max-w-4xl relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+                        <h2 className="text-xl font-bold mb-6 text-center">{t('quickCustomizationTitle')}</h2>
+                        <div className="modal-body grid md:grid-cols-2 gap-6">
+                            <div className="modal-left flex flex-col">
+                                <div className="flex items-center mb-6">
+                                    <label className="mr-4 text-gray-400">{t('modelName')}</label>
+                                    <input type="text" value={avatarName} onChange={e => setAvatarName(e.target.value)} className="flex-1 p-2 bg-[#3a3a3c] border border-[#555] rounded-md" placeholder={t('modelNamePlaceholder')}/>
+                                </div>
+                                <div onClick={() => fileInputRef.current.click()} className="upload-area flex-1 bg-[#1e1e1e] rounded-lg border border-[#444] flex flex-col items-center justify-center text-center cursor-pointer hover:border-[var(--primary-color)]">
+                                    <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="hidden"/>
+                                    <i className="fas fa-upload text-4xl text-[var(--primary-color)] mb-4"></i>
+                                    <p className="text-gray-400">{videoFile ? videoFile.name : t('uploadVideoHint')}</p>
+                                    <div className="mt-2 px-6 py-2 bg-[var(--primary-color)] rounded-full text-sm">{t('uploadVideo')}</div>
+                                </div>
+                            </div>
+                            <div className="modal-right text-gray-400 text-sm">
+                                <h3 className="text-lg font-semibold text-white mb-3 flex items-center"><i className="fas fa-check-circle text-green-500 mr-2"></i>标准示例</h3>
+                                <ul className="list-disc list-inside space-y-1 pl-2 mb-6">
+                                    <li>视频时长最短30秒。</li>
+                                    <li>只有一个人在视频中，五官清晰。</li>
+                                    <li>手势不要遮挡面部或颈部。</li>
+                                    <li>分辨率最低为720p (MP4/MOV)。</li>
+                                </ul>
+                                <h3 className="text-lg font-semibold text-white mb-3 flex items-center"><i className="fas fa-times-circle text-red-500 mr-2"></i>错误示例</h3>
+                                <p>避免多人、面部遮挡、光线不足或过度移动。</p>
+                            </div>
+                        </div>
+                        <div className="modal-footer mt-6 pt-6 border-t border-[#444] flex justify-end">
+                            <button onClick={handleUpload} disabled={isUploading} className="px-8 py-3 bg-[var(--primary-color)] rounded-lg font-bold disabled:opacity-50">
+                                {isUploading ? <><i className="fas fa-spinner fa-spin mr-2"></i>{t('submitting')}</> : t('submitCustomization')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+            const [page, setPage] = useState('dashboard'); // 'dashboard' or 'editor'
+            const [activeProject, setActiveProject] = useState(null);
+            const [notifications, setNotifications] = useState([]);
+
+            const [voices, setVoices] = useState([]);
+            const [avatars, setAvatars] = useState([]);
+            const [generatedVideos, setGeneratedVideos] = useState([]);
+            const [isDataLoaded, setIsDataLoaded] = useState(false);
+            
+            const { t } = useContext(LanguageContext);
+
+            // Fetch initial data
+            useEffect(() => {
+                const fetchData = async () => {
+                    try {
+                        const response = await fetch('/api/data');
+                        if (!response.ok) throw new Error(t('error.fetchData'));
+                        const data = await response.json();
+                        setVoices(data.voices || []);
+                        setAvatars(data.avatars || []);
+                        setGeneratedVideos(data.generatedVideos || []);
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    } finally {
+                        setIsDataLoaded(true);
+                    }
+                };
+                fetchData();
+            }, []);
+
+            // Save data on change
+            useEffect(() => {
+                if (!isDataLoaded) return;
+                const saveData = async () => {
+                    try {
+                        await fetch('/api/data', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ voices, avatars, generatedVideos })
+                        });
+                    } catch (error) {
+                        console.error('Auto-save failed:', error);
+                    }
+                };
+                const timer = setTimeout(saveData, 1000);
+                return () => clearTimeout(timer);
+            }, [voices, avatars, generatedVideos, isDataLoaded]);
+
+            const showNotification = (message, type = 'info') => {
+                const id = Date.now();
+                setNotifications(prev => [...prev, { id, message, type }]);
+            };
+
+            const removeNotification = (id) => {
+                setNotifications(prev => prev.filter(n => n.id !== id));
+            };
+            
+            const updateVideoStatus = (taskCode, status, videoUrl, errorMessage) => {
+                setGeneratedVideos(currentVideos => 
+                    currentVideos.map(video => {
+                        if (video.task_code === taskCode) {
+                            return { ...video, status: status, videoUrl: videoUrl || video.videoUrl, error_message: errorMessage };
+                        }
+                        return video;
+                    })
+                );
+            };
+
+            const appContextValue = {
+                voices, avatars, generatedVideos,
+                addVoice: (voice) => setVoices(prev => [voice, ...prev]),
+                addAvatar: (avatar) => setAvatars(prev => [...prev, avatar]),
+                addGeneratedVideo: (video) => setGeneratedVideos(prev => [video, ...prev]),
+                deleteVoice: (id) => setVoices(prev => prev.filter(v => v.id !== id)),
+                deleteAvatar: (id) => setAvatars(prev => prev.filter(a => a.id !== id)),
+                deleteGeneratedVideo: (id) => setGeneratedVideos(prev => prev.filter(v => v.id !== id)),
+                updateVideoStatus
+            };
+
+            const notificationContextValue = { showNotification };
+
+            return (
+                <AppContext.Provider value={appContextValue}>
+                    <NotificationContext.Provider value={notificationContextValue}>
+                        <div className="fade-in">
+                            {!isDataLoaded ? (
+                                <div className="flex justify-center items-center h-screen bg-gray-100">
+                                    <i className="fas fa-spinner fa-spin text-4xl text-[var(--primary-color)]"></i>
+                                </div>
+                            ) : (
+                                <>
+                                    {page === 'dashboard' && <DashboardPage setPage={setPage} setActiveProject={setActiveProject} />}
+                                    {page === 'editor' && activeProject && <EditorPage setPage={setPage} project={activeProject} setProject={setActiveProject} />}
+                                </>
+                            )}
+                        </div>
+                        <div className="fixed top-0 right-0 z-[1001] space-y-2">
+                            {notifications.map(n => (
+                                <Notification key={n.id} {...n} onClose={() => removeNotification(n.id)} />
+                            ))}
+                        </div>
+                    </NotificationContext.Provider>
+                </AppContext.Provider>
+            );
+        };
+        
+        const Root = () => (
+            <LanguageProvider>
+                <App />
+            </LanguageProvider>
+        );
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<Root />);
+    </script>
+</body>
+</html>

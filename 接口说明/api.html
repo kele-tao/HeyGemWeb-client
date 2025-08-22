@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeyGem AI API 文档 (高级版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f8fa;
+            color: #334155;
+        }
+        h1, h2, h3, h4 {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        pre[class*="language-"] {
+            background: #1e2937;
+            border-radius: 0 0 0.5rem 0.5rem;
+            border: none;
+            padding: 1rem;
+            margin-top: 0;
+            font-family: 'Fira Code', monospace;
+        }
+        .api-endpoint-right {
+            scroll-margin-top: 2rem;
+        }
+        .sidebar-link {
+            transition: all 0.2s ease-in-out;
+            border-left: 2px solid transparent;
+        }
+        .sidebar-link:hover {
+            color: #4f46e5;
+            border-left-color: #a5b4fc;
+        }
+        .sidebar-link.active {
+            color: #4f46e5;
+            font-weight: 600;
+            border-left-color: #4f46e5;
+        }
+        .method {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: inline-block;
+            text-align: center;
+            min-width: 70px;
+        }
+        .method-get { background-color: #e0e7ff; color: #3730a3; }
+        .method-post { background-color: #dcfce7; color: #15803d; }
+        
+        /* Tab Styles */
+        .code-tabs .tab-button {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            background-color: #374151;
+            color: #d1d5db;
+            border: none;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .code-tabs .tab-button:first-child {
+            border-top-left-radius: 0.5rem;
+        }
+        .code-tabs .tab-button:last-child {
+            border-top-right-radius: 0.5rem;
+        }
+        .code-tabs .tab-button.active {
+            background-color: #1e2937;
+            color: white;
+            font-weight: 500;
+        }
+        .code-tabs .tab-pane {
+            display: none;
+        }
+        .code-tabs .tab-pane.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-1/4 max-w-xs fixed top-0 left-0 h-screen overflow-y-auto bg-white border-r border-gray-200 p-8 hidden lg:block">
+            <h1 class="text-2xl font-bold text-indigo-700 mb-8">HeyGem AI API</h1>
+            <nav id="api-nav" class="space-y-4">
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider">核心服务</h4>
+                <a href="#get-data" class="block text-slate-600 py-1 px-3 sidebar-link">获取所有数据</a>
+                <a href="#post-data" class="block text-slate-600 py-1 px-3 sidebar-link">保存所有数据</a>
+                
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mt-6">模型与合成</h4>
+                <a href="#model-training" class="block text-slate-600 py-1 px-3 sidebar-link">克隆声音模型</a>
+                <a href="#upload-avatar" class="block text-slate-600 py-1 px-3 sidebar-link">上传数字人形象</a>
+                <a href="#audio-synthesis" class="block text-slate-600 py-1 px-3 sidebar-link">文本合成音频</a>
+                <a href="#audition-voice" class="block text-slate-600 py-1 px-3 sidebar-link">试听声音(缓存)</a>
+                
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mt-6">视频任务</h4>
+                <a href="#video-synthesis" class="block text-slate-600 py-1 px-3 sidebar-link">提交视频合成</a>
+                <a href="#batch-progress-check" class="block text-slate-600 py-1 px-3 sidebar-link">批量查询进度</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="w-full lg:ml-[33.3333%] lg:w-2/3 p-8 md:p-12">
+            <div class="max-w-4xl mx-auto">
+                <header class="mb-16">
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900">API 文档</h1>
+                    <p class="text-lg text-gray-500 mt-4">欢迎使用 HeyGem AI 数字人后端服务。本文档详细说明了所有可用的 API 接口、参数和返回示例。</p>
+                </header>
+
+                <div id="api-endpoints" class="space-y-24">
+                    <!-- Endpoint: Get Data -->
+                    <div id="get-data" class="api-endpoint-right">
+                        <div class="flex items-center mb-1">
+                            <span class="method method-get">GET</span>
+                            <h2 class="text-2xl font-bold ml-3">/api/data</h2>
+                        </div>
+                        <p class="text-slate-500 mt-2 mb-8">获取应用的所有持久化数据，包括声音模型、数字人形象和已生成的视频列表。</p>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">成功响应 (200)</h3>
+                                <p class="text-sm text-slate-500 mb-4">返回一个包含所有数据的 JSON 对象。</p>
+                                <pre><code class="language-json">{
+  "voices": [],
+  "avatars": [],
+  "generatedVideos": []
+}</code></pre>
+                            </div>
+                            <div class="code-tabs">
+                                <div class="bg-slate-700 rounded-t-lg">
+                                    <button class="tab-button active" data-target="get-data-shell">Shell</button>
+                                    <button class="tab-button" data-target="get-data-python">Python</button>
+                                    <button class="tab-button" data-target="get-data-js">Node.js</button>
+                                </div>
+                                <div class="tab-pane active" id="get-data-shell"><pre><code class="language-bash">curl --request GET --url http://localhost/api/data</code></pre></div>
+                                <div class="tab-pane" id="get-data-python"><pre><code class="language-python">import requests
+response = requests.get("http://localhost/api/data")
+print(response.json())</code></pre></div>
+                                <div class="tab-pane" id="get-data-js"><pre><code class="language-js">import fetch from 'node-fetch';
+fetch('http://localhost/api/data')
+  .then(res => res.json())
+  .then(json => console.log(json));</code></pre></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Endpoint: Save Data -->
+                    <div id="post-data" class="api-endpoint-right">
+                        <div class="flex items-center mb-1">
+                            <span class="method method-post">POST</span>
+                            <h2 class="text-2xl font-bold ml-3">/api/data</h2>
+                        </div>
+                        <p class="text-slate-500 mt-2 mb-8">保存应用的所有状态数据。前端在数据变更时（如增删改）调用此接口进行持久化。</p>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体</h3>
+                                <p class="text-sm text-slate-500 mb-4">请求体结构应与 <code>GET /api/data</code> 的响应结构完全一致。</p>
+                                <pre><code class="language-json">{
+  "voices": [ /* ... */ ],
+  "avatars": [ /* ... */ ],
+  "generatedVideos": [ /* ... */ ]
+}</code></pre>
+                            </div>
+                            <div class="code-tabs">
+                                <div class="bg-slate-700 rounded-t-lg">
+                                    <button class="tab-button active" data-target="post-data-js">JavaScript</button>
+                                    <button class="tab-button" data-target="post-data-python">Python</button>
+                                    <button class="tab-button" data-target="post-data-shell">Shell</button>
+                                </div>
+                                <div class="tab-pane active" id="post-data-js"><pre><code class="language-js">const dataToSave = {
+  voices: [], avatars: [], generatedVideos: []
+};
+fetch('/api/data', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify(dataToSave)
+});</code></pre></div>
+                                <div class="tab-pane" id="post-data-python"><pre><code class="language-python">import requests
+data = {
+  "voices": [], "avatars": [], "generatedVideos": []
+}
+requests.post("http://localhost/api/data", json=data)</code></pre></div>
+                                <div class="tab-pane" id="post-data-shell"><pre><code class="language-bash">curl --request POST \
+  --url http://localhost/api/data \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "voices": [],
+    "avatars": [],
+    "generatedVideos": []
+  }'</code></pre></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Endpoint: Model Training -->
+                    <div id="model-training" class="api-endpoint-right">
+                        <div class="flex items-center mb-1">
+                            <span class="method method-post">POST</span>
+                            <h2 class="text-2xl font-bold ml-3">/api/model-training</h2>
+                        </div>
+                        <p class="text-slate-500 mt-2 mb-8">上传一个音频文件以克隆/训练一个新的声音模型。</p>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体 (multipart/form-data)</h3>
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="p-2 text-left">字段</th><th class="p-2 text-left">类型</th><th class="p-2 text-left">描述</th></tr></thead>
+                                    <tbody><tr class="border-b"><td class="p-2"><code>audio_file</code></td><td class="p-2">File</td><td class="p-2">用户上传的音频文件。</td></tr></tbody>
+                                </table>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2 mt-6">成功响应 (200)</h3>
+                                <pre><code class="language-json">{
+  "msg": "训练成功",
+  "asr_format_audio_url": "...",
+  "reference_audio_text": "..."
+}</code></pre>
+                            </div>
+                            <div class="code-tabs">
+                                <div class="bg-slate-700 rounded-t-lg">
+                                    <button class="tab-button active" data-target="train-shell">Shell</button>
+                                    <button class="tab-button" data-target="train-python">Python</button>
+                                    <button class="tab-button" data-target="train-js">Node.js</button>
+                                </div>
+                                <div class="tab-pane active" id="train-shell"><pre><code class="language-bash">curl --request POST \
+  --url http://localhost/api/model-training \
+  --header 'Content-Type: multipart/form-data' \
+  --form 'audio_file=@/path/to/your/voice.wav'</code></pre></div>
+                                <div class="tab-pane" id="train-python"><pre><code class="language-python">import requests
+url = "http://localhost/api/model-training"
+files = {'audio_file': open('my_voice.wav', 'rb')}
+response = requests.post(url, files=files)
+print(response.json())</code></pre></div>
+                                <div class="tab-pane" id="train-js"><pre><code class="language-js">import fetch from 'node-fetch';
+import { FormData } from 'formdata-node';
+import { fileFromPath } from 'formdata-node/file-from-path';
+
+const form = new FormData();
+form.set('audio_file', await fileFromPath('./my_voice.wav'));
+
+fetch('http://localhost/api/model-training', {
+  method: 'POST',
+  body: form
+});</code></pre></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Endpoint: Upload Avatar -->
+                    <div id="upload-avatar" class="api-endpoint-right">
+                         <div class="flex items-center mb-1"><span class="method method-post">POST</span><h2 class="text-2xl font-bold ml-3">/api/upload-avatar</h2></div>
+                         <p class="text-slate-500 mt-2 mb-8">上传一个视频文件作为数字人形象，并为其生成缩略图。</p>
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体 (multipart/form-data)</h3>
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="p-2 text-left">字段</th><th class="p-2 text-left">类型</th><th class="p-2 text-left">描述</th></tr></thead>
+                                    <tbody>
+                                        <tr class="border-b"><td class="p-2"><code>title</code></td><td class="p-2">String</td><td class="p-2">形象名称。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>video_file</code></td><td class="p-2">File</td><td class="p-2">用户视频文件。</td></tr>
+                                    </tbody>
+                                </table>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2 mt-6">成功响应 (200)</h3>
+                                <pre><code class="language-json">{
+  "id": "...", "title": "我的新形象", "date": "...",
+  "videoUrl": "...", "thumbUrl": "...", "videoPath": "..."
+}</code></pre>
+                            </div>
+                            <div class="code-tabs">
+                                <div class="bg-slate-700 rounded-t-lg">
+                                    <button class="tab-button active" data-target="avatar-shell">Shell</button>
+                                    <button class="tab-button" data-target="avatar-python">Python</button>
+                                    <button class="tab-button" data-target="avatar-js">Node.js</button>
+                                </div>
+                                <div class="tab-pane active" id="avatar-shell"><pre><code class="language-bash">curl --request POST \
+  --url http://localhost/api/upload-avatar \
+  --form 'title="我的新形象"' \
+  --form 'video_file=@/path/to/video.mp4'</code></pre></div>
+                                <div class="tab-pane" id="avatar-python"><pre><code class="language-python">import requests
+url = "http://localhost/api/upload-avatar"
+files = {'video_file': open('video.mp4', 'rb')}
+data = {'title': '我的新形象'}
+response = requests.post(url, files=files, data=data)
+print(response.json())</code></pre></div>
+                                <div class="tab-pane" id="avatar-js"><pre><code class="language-js">import fetch from 'node-fetch';
+import { FormData } from 'formdata-node';
+import { fileFromPath } from 'formdata-node/file-from-path';
+
+const form = new FormData();
+form.set('title', '我的新形象');
+form.set('video_file', await fileFromPath('./video.mp4'));
+
+fetch('http://localhost/api/upload-avatar', {
+  method: 'POST',
+  body: form
+});</code></pre></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Endpoint: Audio Synthesis -->
+                    <div id="audio-synthesis" class="api-endpoint-right">
+                         <div class="flex items-center mb-1"><span class="method method-post">POST</span><h2 class="text-2xl font-bold ml-3">/api/audio-synthesis</h2></div>
+                         <p class="text-slate-500 mt-2 mb-8">根据提供的文本和参考声音模型，合成一段音频。</p>
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体 (application/json)</h3>
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="p-2 text-left">字段</th><th class="p-2 text-left">类型</th><th class="p-2 text-left">描述</th></tr></thead>
+                                    <tbody>
+                                        <tr class="border-b"><td class="p-2"><code>text</code></td><td class="p-2">String</td><td class="p-2">需要转换为语音的文本。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>reference_audio</code></td><td class="p-2">String</td><td class="p-2">参考音频文件名。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>reference_text</code></td><td class="p-2">String</td><td class="p-2">参考音频对应文本。</td></tr>
+                                    </tbody>
+                                </table>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2 mt-6">成功响应 (200)</h3>
+                                <p class="text-sm text-slate-500 mb-4">直接返回 <code>audio/wav</code> 格式的二进制音频流。</p>
+                            </div>
+                            <div class="code-tabs">
+                                <div class="bg-slate-700 rounded-t-lg">
+                                    <button class="tab-button active" data-target="synth-java">Java</button>
+                                    <button class="tab-button" data-target="synth-go">Go</button>
+                                    <button class="tab-button" data-target="synth-php">PHP</button>
+                                </div>
+                                <div class="tab-pane active" id="synth-java"><pre><code class="language-java">import java.net.http.*;
+import java.net.URI;
+import com.google.gson.Gson;
+import java.util.Map;
+
+var client = HttpClient.newHttpClient();
+var payload = Map.of(
+    "text", "你好，世界！",
+    "reference_audio", "...",
+    "reference_text", "..."
+);
+var request = HttpRequest.newBuilder()
+    .uri(URI.create("http://localhost/api/audio-synthesis"))
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString(new Gson().toJson(payload)))
+    .build();
+HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+// response.body() contains the audio data
+</code></pre></div>
+                                <div class="tab-pane" id="synth-go"><pre><code class="language-go">package main
+import ("bytes"; "encoding/json"; "net/http")
+
+func main() {
+    payload, _ := json.Marshal(map[string]string{
+        "text": "你好，世界！",
+        "reference_audio": "...",
+        "reference_text": "...",
+    })
+    http.Post(
+        "http://localhost/api/audio-synthesis", 
+        "application/json", 
+        bytes.NewBuffer(payload),
+    )
+}</code></pre></div>
+                                <div class="tab-pane" id="synth-php"><pre><code class="language-php">&lt;?php
+$url = 'http://localhost/api/audio-synthesis';
+$data = [
+    'text' => '你好，世界！',
+    'reference_audio' => '...',
+    'reference_text' => '...',
+];
+
+$options = [
+    'http' => [
+        'header'  => "Content-type: application/json\r\n",
+        'method'  => 'POST',
+        'content' => json_encode($data),
+    ],
+];
+$context  = stream_context_create($options);
+$result = file_get_contents($url, false, $context);
+// $result contains the audio data
+?&gt;</code></pre></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Endpoint: Audition Voice -->
+                    <div id="audition-voice" class="api-endpoint-right">
+                         <div class="flex items-center mb-1"><span class="method method-post">POST</span><h2 class="text-2xl font-bold ml-3">/api/audition-voice</h2></div>
+                         <p class="text-slate-500 mt-2 mb-8">为指定声音模型生成试听音频并缓存。</p>
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体 (application/json)</h3>
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="p-2 text-left">字段</th><th class="p-2 text-left">类型</th><th class="p-2 text-left">描述</th></tr></thead>
+                                    <tbody>
+                                        <tr class="border-b"><td class="p-2"><code>voice_id</code></td><td class="p-2">String</td><td class="p-2">声音模型的唯一ID。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>text</code></td><td class="p-2">String</td><td class="p-2">试听文本。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>reference_audio</code></td><td class="p-2">String</td><td class="p-2">参考音频文件名。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>reference_text</code></td><td class="p-2">String</td><td class="p-2">参考音频对应文本。</td></tr>
+                                    </tbody>
+                                </table>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2 mt-6">成功响应 (200)</h3>
+                                <pre><code class="language-json">{
+  "url": "/static/audition_cache/..."
+}</code></pre>
+                            </div>
+                            <div class="code-tabs">
+                                <div class="bg-slate-700 rounded-t-lg">
+                                    <button class="tab-button active" data-target="audition-python">Python</button>
+                                    <button class="tab-button" data-target="audition-shell">Shell</button>
+                                </div>
+                                <div class="tab-pane active" id="audition-python"><pre><code class="language-python">import requests
+payload = {
+    "voice_id": "voice-123",
+    "text": "你好，这是一个试听。",
+    "reference_audio": "...",
+    "reference_text": "..."
+}
+response = requests.post(
+    "http://localhost/api/audition-voice", 
+    json=payload
+)
+print(response.json())</code></pre></div>
+                                <div class="tab-pane" id="audition-shell"><pre><code class="language-bash">curl --request POST \
+  --url http://localhost/api/audition-voice \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "voice_id": "voice-123",
+    "text": "你好，这是一个试听。",
+    "reference_audio": "...",
+    "reference_text": "..."
+  }'</code></pre></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Endpoint: Video Synthesis -->
+                    <div id="video-synthesis" class="api-endpoint-right">
+                         <div class="flex items-center mb-1"><span class="method method-post">POST</span><h2 class="text-2xl font-bold ml-3">/api/video-synthesis</h2></div>
+                         <p class="text-slate-500 mt-2 mb-8">提交一个视频合成任务到后台队列。</p>
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体 (multipart/form-data)</h3>
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="p-2 text-left">字段</th><th class="p-2 text-left">类型</th><th class="p-2 text-left">描述</th></tr></thead>
+                                    <tbody>
+                                        <tr class="border-b"><td class="p-2"><code>audio_file</code></td><td class="p-2">File</td><td class="p-2">驱动口型的音频文件。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>video_path</code></td><td class="p-2">String</td><td class="p-2">源视频在服务器的路径。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>project_title</code></td><td class="p-2">String</td><td class="p-2">视频作品的标题。</td></tr>
+                                        <tr class="border-b"><td class="p-2"><code>avatar_id</code></td><td class="p-2">String</td><td class="p-2">数字人形象的ID。</td></tr>
+                                    </tbody>
+                                </table>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2 mt-6">成功响应 (200)</h3>
+                                <pre><code class="language-json">{
+  "message": "Task queued successfully",
+  "task_code": "..."
+}</code></pre>
+                            </div>
+                            <div class="bg-slate-800 rounded-lg">
+                                <div class="text-white text-sm font-semibold p-3 border-b border-slate-700">调用测试</div>
+                                <div class="p-4 space-y-4 text-sm">
+                                    <p class="text-slate-300">由于文件上传的复杂性，请使用 Postman 或自定义脚本进行测试。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Endpoint: Batch Progress Check -->
+                    <div id="batch-progress-check" class="api-endpoint-right">
+                         <div class="flex items-center mb-1"><span class="method method-post">POST</span><h2 class="text-2xl font-bold ml-3">/api/batch-progress-check</h2></div>
+                         <p class="text-slate-500 mt-2 mb-8">批量查询一个或多个视频合成任务的当前状态。</p>
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2">请求体 (application/json)</h3>
+                                <pre><code class="language-json">{
+  "codes": ["task-code-1", "task-code-2"]
+}</code></pre>
+                                <h3 class="text-lg font-semibold mb-4 border-b pb-2 mt-6">成功响应 (200)</h3>
+                                <pre><code class="language-json">[
+  { "code": "...", "status": "成功", "video_url": "...", "msg": "..." },
+  { "code": "...", "status": "处理中", "video_url": null, "msg": "..." }
+]</code></pre>
+                            </div>
+                            <div class="bg-slate-800 rounded-lg">
+                                <div class="text-white text-sm font-semibold p-3 border-b border-slate-700">调用测试</div>
+                                <div class="p-4 space-y-4 text-sm">
+                                    <div>
+                                        <label class="text-slate-300 font-medium">codes (JSON array)</label>
+                                        <input id="progress-codes-input" type="text" class="w-full mt-1 p-2 bg-slate-700 rounded-md text-white" value='["task-code-1"]'>
+                                    </div>
+                                    <button onclick="testProgressCheck()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-md py-2 font-semibold">执行模拟调用</button>
+                                    <div id="progress-response-output" class="mt-4"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sidebar scroll spy
+            const sections = document.querySelectorAll('.api-endpoint-right');
+            const navLinks = document.querySelectorAll('#api-nav a');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: "-40% 0px -60% 0px" });
+            sections.forEach(section => observer.observe(section));
+
+            // Code tabs
+            const allTabs = document.querySelectorAll('.code-tabs');
+            allTabs.forEach(tabContainer => {
+                const tabButtons = tabContainer.querySelectorAll('.tab-button');
+                const tabPanes = tabContainer.querySelectorAll('.tab-pane');
+                
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        
+                        const targetId = button.getAttribute('data-target');
+                        
+                        tabPanes.forEach(pane => {
+                            if (pane.id === targetId) {
+                                pane.classList.add('active');
+                            } else {
+                                pane.classList.remove('active');
+                            }
+                        });
+                    });
+                });
+            });
+        });
+
+        // Mock API call for progress check
+        function testProgressCheck() {
+            const inputEl = document.getElementById('progress-codes-input');
+            const outputEl = document.getElementById('progress-response-output');
+            let codes;
+            try {
+                codes = JSON.parse(inputEl.value);
+                if (!Array.isArray(codes)) throw new Error();
+            } catch (e) {
+                outputEl.innerHTML = `<p class="text-red-400">请输入有效的JSON数组。</p>`;
+                return;
+            }
+
+            const response = codes.map(code => ({
+                code: code,
+                status: Math.random() > 0.5 ? "成功" : "处理中",
+                video_url: "/static/mock-video.mp4",
+                msg: "这是一个模拟响应"
+            }));
+            
+            const responseHtml = `<h4 class="text-slate-300 font-medium">模拟响应:</h4><pre><code class="language-json">${JSON.stringify(response, null, 2)}</code></pre>`;
+            outputEl.innerHTML = responseHtml;
+            Prism.highlightAllUnder(outputEl);
+        }
+    </script>
+</body>
+</html>

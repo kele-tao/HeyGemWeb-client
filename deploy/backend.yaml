@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  backend:
+    image: registry.cn-hangzhou.aliyuncs.com/guoshiyin/heygembackend:1.0
+    container_name: heygem-backend
+    restart: always
+    working_dir: /app
+    volumes:
+      - ./static_avatars:/app/static_avatars
+      - ./static_files:/app/static_files
+      - ${PWD}/huiying_ai_db.json:/app/huiying_ai_db.json
+      - /root/heygem_data/voice/data:/root/heygem_data/voice/data
+      - /root/heygem_data/face2face/temp:/root/heygem_data/face2face/temp
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Shanghai
+      - VIDEO_SYNTH_HOST=172.16.90.175
+      - VOICE_CLONE_HOST=172.16.90.175
