@@ -1,0 +1,298 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme */
+    --bg: 250 250 250;
+    --bg-2: 244 244 245;
+    --surface: 255 255 255;
+    --surface-2: 244 244 245;
+    --surface-3: 228 228 231;
+    --text: 24 24 27;
+    --text-2: 63 63 70;
+    --text-muted: 113 113 122;
+    --border: 228 228 231;
+    --border-2: 212 212 216;
+    --ring: 139 92 246;
+
+    --gradient-start: 139 92 246;
+    --gradient-mid: 59 130 246;
+    --gradient-end: 6 182 212;
+  }
+
+  .dark {
+    --bg: 9 9 11;
+    --bg-2: 24 24 27;
+    --surface: 24 24 27;
+    --surface-2: 39 39 42;
+    --surface-3: 63 63 70;
+    --text: 250 250 250;
+    --text-2: 212 212 216;
+    --text-muted: 161 161 170;
+    --border: 39 39 70;
+    --border-2: 63 63 70;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-[rgb(var(--bg))] text-[rgb(var(--text))] antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+      'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+      'Source Han Sans CN', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 数字使用 tabular-nums 对齐 */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* 选中文字 */
+  ::selection {
+    background: rgb(var(--ring) / 0.25);
+    color: rgb(var(--text));
+  }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border-2) / 0.4);
+    border-radius: 5px;
+    border: 2px solid rgb(var(--bg));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--border-2) / 0.7);
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  /* === 按钮 === */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-lg text-sm font-medium
+           transition-all duration-200 ease-out-expo
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
+           focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))];
+  }
+  .btn-primary {
+    @apply btn text-white shadow-glow
+           bg-aurora-1 bg-[length:200%_200%]
+           hover:bg-[position:100%_0] hover:shadow-glow-lg
+           active:scale-[0.98]
+           animate-gradient bg-[length:200%_200%];
+  }
+  .btn-secondary {
+    @apply btn bg-[rgb(var(--surface))] text-[rgb(var(--text))]
+           border border-[rgb(var(--border))]
+           hover:bg-[rgb(var(--surface-2))] hover:border-[rgb(var(--border-2))]
+           active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn text-[rgb(var(--text-muted))]
+           hover:bg-[rgb(var(--surface-2))] hover:text-[rgb(var(--text))]
+           active:scale-[0.98];
+  }
+  .btn-danger {
+    @apply btn bg-danger-500 text-white
+           hover:bg-danger-600
+           shadow-sm hover:shadow-md
+           active:scale-[0.98];
+  }
+
+  /* === 卡片 === */
+  .card {
+    @apply bg-[rgb(var(--surface))] border border-[rgb(var(--border))]
+           rounded-xl shadow-soft
+           transition-all duration-200 ease-out-expo;
+  }
+  .card-hover {
+    @apply card hover:border-[rgb(var(--border-2))]
+           hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  /* === 玻璃感 === */
+  .glass {
+    @apply bg-white/70 dark:bg-ink-900/60 backdrop-blur-xl
+           border border-white/20 dark:border-white/5;
+  }
+
+  /* === 输入 === */
+  .input {
+    @apply w-full px-3.5 py-2.5 rounded-lg
+           bg-[rgb(var(--surface-2))]
+           border border-[rgb(var(--border))]
+           text-[rgb(var(--text))]
+           placeholder:text-[rgb(var(--text-muted))]
+           focus:outline-none focus:ring-2 focus:ring-brand-500/30
+           focus:border-brand-500
+           transition-all duration-200;
+  }
+
+  /* === 标签徽章 === */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5
+           rounded-full text-xs font-medium;
+  }
+  .badge-success {
+    @apply badge bg-success-50 text-success-700
+           dark:bg-success-500/10 dark:text-success-400
+           ring-1 ring-success-500/20;
+  }
+  .badge-warning {
+    @apply badge bg-warning-50 text-warning-600
+           dark:bg-warning-500/10 dark:text-warning-400
+           ring-1 ring-warning-500/20;
+  }
+  .badge-danger {
+    @apply badge bg-danger-50 text-danger-600
+           dark:bg-danger-500/10 dark:text-danger-400
+           ring-1 ring-danger-500/20;
+  }
+  .badge-info {
+    @apply badge bg-info-50 text-info-600
+           dark:bg-info-500/10 dark:text-info-400
+           ring-1 ring-info-500/20;
+  }
+  .badge-brand {
+    @apply badge bg-brand-50 text-brand-700
+           dark:bg-brand-500/10 dark:text-brand-400
+           ring-1 ring-brand-500/20;
+  }
+
+  /* === 文字渐变 === */
+  .text-gradient {
+    @apply bg-clip-text text-transparent
+           bg-aurora-1 bg-[length:200%_200%] animate-gradient;
+  }
+
+  /* === 骨架屏 === */
+  .skeleton {
+    @apply rounded-md
+           bg-gradient-to-r from-[rgb(var(--surface-2))]
+           via-[rgb(var(--surface-3))]
+           to-[rgb(var(--surface-2))]
+           bg-[length:1000px_100%]
+           animate-shimmer-fast;
+  }
+
+  /* === 玻璃面板(深色模式专属) === */
+  .panel-dark {
+    @apply bg-ink-900/60 backdrop-blur-2xl
+           border border-white/5
+           shadow-2xl;
+  }
+}
+
+@layer utilities {
+  /* 文本平衡(避免孤字) */
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* 自定义滚动条(细) */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  /* GPU 加速 */
+  .gpu {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* 防止选中文本(用于按钮等) */
+  .no-select {
+    user-select: none;
+  }
+}
+
+/* === 关键动画 keyframes(在 Tailwind 之外) === */
+@keyframes shine-sweep {
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(300%) skewX(-12deg);
+  }
+}
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 70%
+  );
+  animation: shine-sweep 3s ease-in-out infinite;
+}
+
+/* 视频卡 hover 时光泽扫过 */
+@keyframes card-shine {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+.card-shine:hover::after {
+  animation: card-shine 0.8s ease-out;
+}

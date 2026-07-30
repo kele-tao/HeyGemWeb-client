@@ -1,255 +1,251 @@
-# 🌟 HeyGem AI 数字人创作平台
+# HeyGem · AI 数字人创作平台
 
-<div align="center">
-  <img src="img/1.png" alt="HeyGem AI Logo" width="800">
-  <h3>一键创建专业级数字人视频，让AI为你发声</h3>
-  <p>轻松定制数字人形象 | 克隆个性化声音 | 生成逼真口播视频</p>
-</div>
+> 一站式 AI 数字人视频生成平台 · 3 步创建专业级口播视频
 
-<div align="center">
-  <img src="https://img.shields.io/badge/版本-1.0.0-blue?style=for-the-badge" alt="版本">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="许可证">
-  <img src="https://img.shields.io/badge/Python-3.8+-yellow?style=for-the-badge&logo=python" alt="Python">
-  <img src="https://img.shields.io/badge/React-18.0+-61DAFB?style=for-the-badge&logo=react" alt="React">
-  <img src="https://img.shields.io/badge/FastAPI-0.95+-009688?style=for-the-badge&logo=fastapi" alt="FastAPI">
-</div>
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![React](https://img.shields.io/badge/React-18-61dafb)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-5-646cff)](https://vitejs.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-## 🔥 项目亮点 | Highlights
+HeyGem 让任何人轻松创建专业级数字人视频:上传一段人脸视频创建你的数字分身,上传一段音频克隆你的声音,然后输入脚本,AI 帮你生成带口型同步、面部表情的口播视频。
 
-- **零门槛创作** - 无需专业知识，3步轻松生成高质量数字人视频
-- **一键克隆声音** - 仅需30秒语音样本，即可复制您的声音特征
-- **极速定制形象** - 上传一段视频，快速创建个性化数字人形象
-- **实时预览效果** - 所见即所得，随时调整优化创作内容
-- **高度拟真合成** - 基于先进AI模型，生成逼真的口型同步和面部表情
+![HeyGem Home](img/showcase-home.png)
 
----
+## ✨ 核心特性
 
-- **Zero Learning Curve** - Create high-quality digital human videos in 3 simple steps
-- **One-Click Voice Cloning** - Clone your voice with just a 30-second audio sample
-- **Rapid Avatar Customization** - Create personalized digital humans with a single video
-- **Real-time Preview** - What you see is what you get, adjust and optimize in real-time
-- **Highly Realistic Synthesis** - Generate lifelike lip synchronization and facial expressions
+- 🎭 **数字人定制** — 上传 30 秒人脸视频,生成专属数字分身
+- 🎙️ **声音克隆** — 上传 30 秒音频,AI 学习你的声音特征
+- ✍️ **文本转语音** — 输入任意脚本,自动生成自然口播音频
+- 🎬 **视频合成** — 一键将音频 + 数字人合成完整口播视频
+- 🌍 **多语言** — 内置中英双语,支持扩展
+- 🎨 **现代设计** — 极光渐变 + 毛玻璃 + 微动效
+- 🌓 **暗色模式** — 完整支持,跟随系统
+- 📱 **PWA** — 可安装到桌面,支持离线访问
+- 🌐 **i18n** — 多语言支持(中/英)
 
-## 📝 项目介绍 | Introduction
+## 🖼️ 截图
 
-HeyGem AI 是一个革命性的数字人创作平台，将复杂的AI技术封装成简单易用的工具，让任何人都能轻松创建专业级数字人视频。无论是营销宣传、教育培训、内容创作，还是个人娱乐，HeyGem AI都能满足您的需求。
+| 首页(暗色) | 编辑器 | 作品列表 |
+|------|--------|----------|
+| ![Home](img/showcase-home.png) | ![Editor](img/showcase-editor.png) | ![Works](img/showcase-works.png) |
 
-HeyGem AI is a revolutionary digital human creation platform that packages complex AI technology into easy-to-use tools, enabling anyone to create professional-grade digital human videos effortlessly. Whether for marketing, education, content creation, or personal entertainment, HeyGem AI meets all your needs.
-
-## ✨ 核心功能 | Core Features
-
-<table>
-  <tr>
-    <td width="50%">
-      <h3>🎙️ 声音克隆</h3>
-      <p>上传30秒以上的清晰语音样本，AI将分析并克隆您的声音特征，生成与您声音几乎无法区分的合成语音。支持多种语言和情感表达。</p>
-      <p><i>Voice Cloning: Upload a clear voice sample of 30+ seconds, and AI will analyze and clone your voice characteristics to generate synthetic speech nearly indistinguishable from your own. Supports multiple languages and emotional expressions.</i></p>
-    </td>
-    <td width="50%">
-      <h3>👤 数字人定制</h3>
-      <p>只需上传一段包含清晰面部的视频，系统将自动提取面部特征，创建您的专属数字人形象。支持多种风格和表情定制。</p>
-      <p><i>Digital Human Customization: Simply upload a video with clear facial features, and the system will automatically extract facial characteristics to create your personalized digital human avatar. Supports various styles and expression customization.</i></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <h3>🔊 文本转语音</h3>
-      <p>输入任意文本，系统将使用您克隆的声音模型，将文本转换为自然流畅的语音。支持调整语速、语调和情感色彩。</p>
-      <p><i>Text-to-Speech: Input any text, and the system will use your cloned voice model to convert it into natural, fluent speech. Supports adjustments to speech rate, tone, and emotional coloring.</i></p>
-    </td>
-    <td width="50%">
-      <h3>🎬 视频合成</h3>
-      <p>将生成的语音与数字人形象结合，AI自动生成口型同步和面部表情，创造出逼真的口播视频。支持批量处理和自定义背景。</p>
-      <p><i>Video Synthesis: Combine generated speech with digital human avatars, and AI automatically generates lip synchronization and facial expressions to create realistic talking head videos. Supports batch processing and custom backgrounds.</i></p>
-    </td>
-  </tr>
-</table>
-
-## 📸 功能展示 | Feature Showcase
-
-<div align="center">
-  <table>
-    <tr>
-      <td><img src="img/1.png" alt="主界面" width="100%"><br><center><b>主界面 | Main Interface</b></center></td>
-      <td><img src="img/2.png" alt="数字人定制" width="100%"><br><center><b>数字人定制 | Avatar Customization</b></center></td>
-    </tr>
-    <tr>
-      <td><img src="img/3.png" alt="声音克隆" width="100%"><br><center><b>声音克隆 | Voice Cloning</b></center></td>
-      <td><img src="img/4.png" alt="视频编辑器" width="100%"><br><center><b>视频编辑器 | Video Editor</b></center></td>
-    </tr>
-    <tr>
-      <td><img src="img/6.png" alt="视频预览" width="100%"><br><center><b>视频预览 | Video Preview</b></center></td>
-    </tr>
-  </table>
-</div>
-
-## 🛠️ 技术架构 | Technical Architecture
-
-### 前端 | Frontend
-- **React** - 构建响应式用户界面，提供流畅的交互体验
-- **TailwindCSS** - 实现现代化、美观的UI设计
-- **FontAwesome** - 提供丰富的图标资源
-
-### 后端 | Backend
-- **FastAPI** - 高性能Python Web框架，提供异步API支持
-- **Uvicorn** - ASGI服务器，处理并发请求
-- **MoviePy** - 强大的视频处理库，用于视频缩略图生成
-
-### AI服务 | AI Services
-- **语音合成服务 (TTS)** - 基于深度学习的声音克隆和合成技术
-- **视频合成服务 (Face2Face)** - 基于深度学习的口型同步和面部动画生成
-- **语音识别服务 (ASR)** - 用于音频转文本的高精度识别系统
-
-## 🚀 部署指南 | Deployment Guide
-
-### 系统要求 | System Requirements
-NVIDIA GPU (推荐8GB+显存)
-Docker & Docker Compose
-50GB+ 磁盘空间
-Ubuntu 20.04+ / CentOS 8+ / Windows 10+ 操作系统
-
-### 硬件要求 | Hardware Requirements
-CPU: 13th Generation Intel Core i5 - 13400F
-Memory: 32G or more (necessary)
-Graphics Card: RTX - 4070 (Ensure you have an NVIDIA graphics card and the graphics card driver is correctly installed)
-Hard Disk: Free space greater than 100G
-
-### 安装依赖 | Install Dependencies
-### 方式一：Docker 一键部署 | Docker Deployment
-
-最简单快捷的部署方式，我们已经将所有服务打包成Docker镜像，只需几个命令即可完成部署。
-
-1. **克隆仓库 | Clone Repository**
-   ```bash
-   git clone https://github.com/kele-tao/HeyGemWeb-client.git
-   cd HeyGemWeb-client
-   ```
-
-2. **启动所有服务 | Start All Services**
-   ```bash
-   cd deploy
-   docker-compose up -d
-   ```
-
-3. **访问应用 | Access Application**
-   在浏览器中打开 http://localhost:8000
-   
-   Open http://localhost:8000 in your browser
-
-### 方式二：源码部署 | Source Code Deployment
-
-如果您需要自定义功能或进行二次开发，可以选择源码部署方式。
-
-1. **克隆仓库 | Clone Repository**
-   ```bash
-   git clone https://github.com/kele-tao/HeyGemWeb-client.git
-   cd HeyGemWeb-client
-   ```
-
-2. **启动AI服务 | Start AI Services**
-   ```bash
-   cd deploy
-   docker-compose up -d heygem-tts heygem-f2f heygem-asr
-   ```
-
-3. **安装后端依赖 | Install Backend Dependencies**
-   ```bash
-   cd ../backend
-   pip install -r requirements.txt
-   ```
-
-4. **启动后端服务 | Start Backend Service**
-   ```bash
-   python main.py
-   ```
-
-5. **部署前端 | Deploy Frontend**
-   ```bash
-   cd ../web
-   # 如果您使用Node.js
-   npm install
-   npm run dev
-   # 或者直接使用任何Web服务器托管index.html
-   python -m http.server 8080
-   ```
-
-6. **访问应用 | Access Application**
-   在浏览器中打开 http://localhost:8080
-   
-   Open http://localhost:8080 in your browser
-
-## 🧩 系统架构 | System Architecture
-
-HeyGem AI 平台采用微服务架构，由三个核心AI服务和一个统一的Web界面组成：
+## 🏗️ 系统架构
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│                 │     │                 │     │                 │
-│  语音合成服务   │     │  视频合成服务   │     │  语音识别服务   │
+│   语音合成服务   │     │   视频合成服务   │     │   语音识别服务   │
 │     (TTS)      │     │   (Face2Face)   │     │     (ASR)      │
-│                 │     │                 │     │                 │
 └────────┬────────┘     └────────┬────────┘     └────────┬────────┘
          │                       │                       │
          └───────────────┬───────┴───────────────┬───────┘
                          │                       │
                 ┌────────┴────────┐     ┌────────┴────────┐
-                │                 │     │                 │
                 │   后端服务     │     │   前端界面     │
-                │   (FastAPI)    │     │   (React)      │
-                │                 │     │                 │
+                │   (FastAPI)    │     │ (React+Vite)  │
                 └─────────────────┘     └─────────────────┘
 ```
 
-1. **语音合成服务 (TTS)** - 负责声音克隆和文本转语音
-2. **视频合成服务 (Face2Face)** - 负责数字人视频生成
-3. **语音识别服务 (ASR)** - 负责音频转文本
-4. **后端服务 (FastAPI)** - 协调各AI服务，处理业务逻辑
-5. **前端界面 (React)** - 提供用户友好的操作界面
+- **前端** (`web/`) — React 18 + TypeScript + Vite + TailwindCSS + Zustand
+- **后端** (`backend/`) — FastAPI + Uvicorn,负责业务编排与持久化
+- **AI 服务** (`deploy/`) — 三个独立的 AI 模型服务,容器化部署
 
-## 📋 API文档 | API Documentation
+## 🚀 快速开始
 
-后端提供以下主要API端点：
+### 环境要求
 
-| 端点 | 方法 | 描述 |
+- **Node.js** 18+
+- **后端服务**: 参见 [backend/README.md](backend/README.md)
+- **AI 服务**: 参见 [deploy/README.md](deploy/README.md)
+
+### 安装
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/kele-tao/HeyGemWeb-client.git
+cd HeyGemWeb-client/web
+
+# 2. 安装依赖
+npm install
+
+# 3. 启动开发服务器
+npm run dev
+# 打开 http://localhost:8080
+```
+
+### 生产构建
+
+```bash
+npm run build       # 产物输出到 dist/
+npm run preview     # 本地预览生产产物
+```
+
+### Docker 部署
+
+参见 [`deploy/web.yaml`](deploy/web.yaml) — 已配置好 nginx 静态托管。
+
+## 📖 使用文档
+
+### 第一次使用
+
+1. 打开网站,跟随 Onboarding 引导了解核心功能
+2. 上传一段 30 秒以上的人脸视频,创建数字人
+3. 上传一段 30 秒以上的音频,克隆声音
+4. 进入编辑器,选数字人 + 选声音 + 写脚本
+5. 一键生成口播视频,下载或分享
+
+### 核心操作
+
+| 操作 | 路径 | 说明 |
 |------|------|------|
-| `/api/data` | GET | 获取所有用户数据 |
-| `/api/data` | POST | 保存用户数据 |
-| `/api/model-training` | POST | 训练声音模型 |
-| `/api/upload-avatar` | POST | 上传数字人形象 |
-| `/api/audio-synthesis` | POST | 合成音频 |
-| `/api/audition-voice` | POST | 试听声音 |
-| `/api/video-synthesis` | POST | 合成视频 |
-| `/api/batch-progress-check` | POST | 批量检查视频合成进度 |
+| 创建数字人 | 数字模特 → 定制模特 | 上传人脸视频,30秒+ |
+| 克隆声音 | 声音模型 → 克隆声音 | 上传音频,30秒+ |
+| 合成视频 | 首页 → 创建视频 | 选模特 + 选声音 + 写脚本 |
+| 下载视频 | 作品页 → 卡片右上角下载按钮 | MP4 格式 |
+| 分享视频 | 作品页 → 卡片 → 复制链接 | 公开 URL |
 
-详细API文档请参考 [接口说明/api.html](接口说明/api.html)
+### 键盘快捷键
 
-## 🔧 常见问题 | FAQ
+| 快捷键 | 功能 |
+|--------|------|
+| `g h` | 跳到首页 |
+| `g w` | 跳到作品 |
+| `g a` | 跳到数字模特 |
+| `g v` | 跳到声音模型 |
+| `g n` | 新建项目(需有数字人) |
 
-**Q: 系统对上传的视频有什么要求？**  
-A: 视频应包含清晰的人脸，时长不少于30秒，分辨率至少720p，格式为MP4或MOV。
+## 🛠 技术栈
 
-**Q: 声音克隆需要多长的音频样本？**  
-A: 建议提供至少30秒的清晰语音样本，样本质量越高，克隆效果越好。
+### 前端
 
-**Q: 如何提高视频合成质量？**  
-A: 使用高质量的原始视频素材，确保面部光线充足，避免快速移动或面部遮挡。
+- **[React 18](https://react.dev)** — UI 框架
+- **[TypeScript 5](https://www.typescriptlang.org)** — 严格类型
+- **[Vite 5](https://vitejs.dev)** — 构建工具
+- **[TailwindCSS 3](https://tailwindcss.com)** — 样式
+- **[Zustand](https://github.com/pmndrs/zustand)** — 状态管理
+- **[React Router 6](https://reactrouter.com)** — 路由
+- **[i18next](https://www.i18next.com)** — 国际化
+- **[react-hot-toast](https://react-hot-toast.com)** — 通知
+- **[lucide-react](https://lucide.dev)** — 图标
+- **PWA** — Service Worker 离线缓存
 
-**Q: 支持哪些语言的文本转语音？**  
-A: 目前主要支持中文和英文，其他语言正在开发中。
+### 后端(独立项目)
 
-## 💖 支持作者
+- **FastAPI** + **Uvicorn**
+- **MoviePy** — 视频缩略图生成
+- 三个 AI 服务容器:TTS / Face2Face / ASR
 
-如果你觉得这个项目对你有帮助，欢迎通过下方二维码赞赏支持作者的持续开发！
+## 📁 项目结构
 
-![赞赏码](img/dashang.png)
+```
+HeyGemWeb-client/
+├── web/                        # 前端项目
+│   ├── public/                 # 静态资源
+│   ├── src/
+│   │   ├── api/                # 后端 API 封装
+│   │   ├── brand/              # 品牌组件(Logo / Aurora / Shapes)
+│   │   ├── components/
+│   │   │   ├── editor/         # 编辑器专用(WizardSteps)
+│   │   │   ├── feedback/       # Modal / ErrorBoundary / Onboarding / 等
+│   │   │   ├── layout/         # AppLayout / RouteGuard / HelpMenu
+│   │   │   ├── modals/         # 业务模态框
+│   │   │   └── works/          # 列表卡片
+│   │   ├── data/               # 脚本模板数据
+│   │   ├── hooks/              # 自定义 hooks
+│   │   ├── i18n/               # 多语言资源
+│   │   ├── lib/                # 工具函数
+│   │   ├── pages/              # 5 个页面(lazy 加载)
+│   │   ├── store/              # Zustand 全局状态
+│   │   ├── types/              # TypeScript 类型
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── index.css           # Tailwind + 设计系统
+│   ├── index.html
+│   ├── nginx.conf              # 生产部署 nginx 配置
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── README.md               # 前端详细文档
+├── backend/                    # 后端项目
+│   ├── main.py
+│   └── requirements.txt
+├── deploy/                     # 部署配置
+│   ├── docker-compose.yaml
+│   ├── backend.yaml
+│   └── web.yaml
+├── img/                        # README 配图
+├── CHANGELOG.md                # 更新日志
+├── CONTRIBUTING.md             # 贡献指南
+├── LICENSE                     # MIT 协议
+└── README.md
+```
 
-## ⚠️ 免责声明
+## 🤝 贡献
 
-本软件仅供学习和研究使用。使用者需要：
+我们欢迎所有形式的贡献!请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解:
+
+- 🐛 报告 Bug
+- 💡 提出新功能
+- 🔧 提交 Pull Request
+- 📖 改进文档
+
+## 📋 路线图
+
+### 已实现
+
+- ✅ 数字人定制(上传人脸视频)
+- ✅ 声音克隆(上传音频)
+- ✅ 文本转语音合成
+- ✅ 视频合成(口型同步)
+- ✅ 多语言(中/英)
+- ✅ 暗色模式
+- ✅ PWA 离线
+- ✅ 路由懒加载
+- ✅ 错误边界
+- ✅ 客户端媒体校验
+- ✅ 智能轮询进度
+- ✅ 模板库(12 个场景)
+
+### 规划中
+
+- 📝 AI 脚本助手(LLM 集成)
+- 🎵 BGM 背景音乐库
+- 📊 字幕自动生成
+- 👥 团队空间与协作
+- 🔐 鉴权与权限系统
+- 💰 计费与积分
+- 📈 数据看板与分析
+
+## 🐛 已知限制
+
+- 无多用户/团队空间(需要后端改造)
+- 无 API Key / 限流(商业版需要)
+- 无计费系统
+- 无审计日志
+- 分享链接公开,无权限控制
+
+## 🔒 免责声明
+
+本软件仅供学习和研究使用。使用者需要:
 
 - 遵守相关法律法规
 - 尊重知识产权
 - 不得用于商业用途
 - 对使用本软件产生的任何后果自行承担责任
 
-⭐ 如果这个项目对你有帮助，请给个Star支持一下！ 💡 有商业化想法？欢迎交流合作，共同探索AI写作的无限可能！
+## 📄 许可
+
+[MIT License](LICENSE) © 2026 HeyGem Contributors
+
+## 🙏 致谢
+
+- [Fish Speech](https://github.com/fishaudio/fish-speech) — TTS 引擎
+- [HeyGem.ai](https://heygem.ai) — Face2Face 引擎
+- [FunASR](https://github.com/modelscope/FunASR) — ASR 引擎
+- [Lucide](https://lucide.dev) — 图标库
+- [TailwindCSS](https://tailwindcss.com) — 样式框架
+
+---
+
+⭐ 如果这个项目对你有帮助,请给个 Star 支持一下!
