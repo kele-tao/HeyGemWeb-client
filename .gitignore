@@ -24,8 +24,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-
-# Installer logs
 # Unit test / coverage
 htmlcov/
 .tox/
