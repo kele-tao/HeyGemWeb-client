@@ -73,7 +73,7 @@ backend/
 
 ```bash
 cd backend
-python -m pytest -q          # 37 passed
+python -m pytest -q          # 38 passed
 ```
 
 覆盖点：
