@@ -309,6 +309,20 @@ export default {
     switchToLogin: 'Sign in',
   },
 
+  settings: {
+    title: 'Account settings',
+    open: 'Account settings',
+    email: 'Email',
+    registeredAt: 'Registered',
+    lastLogin: 'Last sign-in',
+    changePassword: 'Change password',
+    oldPassword: 'Current password',
+    newPassword: 'New password',
+    passwordUnchanged: 'New password must differ from the current one',
+    passwordChanged: 'Password updated',
+    passwordFailed: 'Could not update password, please retry',
+  },
+
   filter: {
     searchPlaceholder: 'Search...',
     statusAll: 'All statuses',

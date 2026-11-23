@@ -118,7 +118,27 @@ def main() -> int:
         )
         check("icon-buttons-labelled", len(unlabeled) == 0, json.dumps(unlabeled[:3], ensure_ascii=False))
 
-        # 7) 控制台无错误
+        # 7) 账户设置弹窗（REQ-012）：可打开、有 aria-modal 与标题、Esc 可关闭
+        page.goto(BASE + "/", wait_until="networkidle")
+        page.wait_for_timeout(600)
+        settings_btn = page.locator('button[aria-label="账户设置"]')
+        check("account-settings-button", settings_btn.count() > 0)
+        if settings_btn.count():
+            settings_btn.first.click()
+            page.wait_for_timeout(600)
+            dialog = page.locator('[role="dialog"]')
+            check("settings-dialog-opens", dialog.count() == 1, str(dialog.count()))
+            check(
+                "settings-dialog-a11y",
+                dialog.count() == 1
+                and dialog.first.get_attribute("aria-modal") == "true"
+                and (dialog.first.locator("h2").count() > 0),
+            )
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(400)
+            check("settings-dialog-esc", page.locator('[role="dialog"]').count() == 0)
+
+        # 8) 控制台无错误
         check("no-console-errors", len(console_errors) == 0, " | ".join(console_errors[:3]))
 
         browser.close()

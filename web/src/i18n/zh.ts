@@ -309,6 +309,20 @@ export default {
     switchToLogin: '去登录',
   },
 
+  settings: {
+    title: '账户设置',
+    open: '账户设置',
+    email: '登录邮箱',
+    registeredAt: '注册时间',
+    lastLogin: '最近登录',
+    changePassword: '修改密码',
+    oldPassword: '原密码',
+    newPassword: '新密码',
+    passwordUnchanged: '新密码不能与原密码相同',
+    passwordChanged: '密码已修改',
+    passwordFailed: '修改密码失败，请重试',
+  },
+
   filter: {
     searchPlaceholder: '搜索…',
     statusAll: '全部状态',

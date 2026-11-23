@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Film, Home, LogOut, Mic, MonitorPlay, UserCircle2 } from 'lucide-react'
+import { Film, Home, LogOut, Mic, MonitorPlay, Settings2, UserCircle2 } from 'lucide-react'
 import { cn, emailInitial } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useConfirm } from '@/hooks/useConfirm'
+import AccountSettingsModal from '@/components/modals/AccountSettingsModal'
 
 export const NAV = [
   { to: '/', icon: Home, key: 'home' },
@@ -21,6 +23,7 @@ export function AccountBlock({ collapsed }: { collapsed?: boolean }) {
   const logout = useAuthStore((s) => s.logout)
   const confirm = useConfirm()
   const navigate = useNavigate()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleLogout = async () => {
     const ok = await confirm({
@@ -45,11 +48,15 @@ export function AccountBlock({ collapsed }: { collapsed?: boolean }) {
         collapsed ? 'flex flex-col items-center gap-1' : 'space-y-1',
       )}
     >
-      <div
+      <button
+        type="button"
+        onClick={() => setSettingsOpen(true)}
         className={cn(
-          'flex items-center gap-2.5 rounded-md px-1.5 py-1.5',
+          'flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-[rgb(var(--surface-2))]',
           collapsed && 'justify-center',
         )}
+        aria-label={t('settings.open')}
+        title={t('settings.open')}
       >
         <span
           className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-[rgb(var(--hairline))] bg-[rgb(var(--surface-2))] text-xs font-semibold text-[rgb(var(--text-2))]"
@@ -62,7 +69,10 @@ export function AccountBlock({ collapsed }: { collapsed?: boolean }) {
             {user?.email ?? '—'}
           </span>
         )}
-      </div>
+        {!collapsed && (
+          <Settings2 className="h-3.5 w-3.5 flex-shrink-0 text-[rgb(var(--text-3))]" aria-hidden />
+        )}
+      </button>
       <button
         type="button"
         onClick={handleLogout}
@@ -76,6 +86,8 @@ export function AccountBlock({ collapsed }: { collapsed?: boolean }) {
         <LogOut className="h-4 w-4 flex-shrink-0" />
         {!collapsed && <span className="text-xs">{t('layout.logout')}</span>}
       </button>
+
+      <AccountSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }
