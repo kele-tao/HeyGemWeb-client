@@ -1,108 +1,69 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 
-export type ProgressStage =
-  | 'preparing'
-  | 'extractingAudio'
-  | 'trainingModel'
-  | 'finalizing'
-  | 'extractingFace'
-  | 'buildingModel'
-  | 'generatingThumb'
+export type UploadPhase = 'uploading' | 'processing' | 'ready' | 'failed'
 
 interface Props {
-  /** 当前阶段(为 undefined 时组件隐藏) */
-  stage: ProgressStage | null
-  /** 后端实际进度 0-100,可选 */
-  percent?: number
-  /** 完成后是否继续显示 */
-  done?: boolean
+  /** 上传阶段的真实进度 0-100（XHR 提供），无则为 null */
+  percent: number | null
+  phase: UploadPhase
+  /** 服务端处理阶段的提示文案 */
+  hint?: string
+  /** 失败原因 */
+  errorMessage?: string | null
 }
 
-const STAGES_ORDER: ProgressStage[] = [
-  'preparing',
-  'extractingAudio',
-  'trainingModel',
-  'finalizing',
-]
-
-const STAGES_AVATAR: ProgressStage[] = [
-  'preparing',
-  'extractingFace',
-  'buildingModel',
-  'generatingThumb',
-]
-
-export default function UploadProgress({ stage, percent, done }: Props) {
+/**
+ * 上传 / 处理进度：上传阶段用真实 XHR 百分比，处理阶段是服务端无阶段百分比，
+ * 因此只用不定式进度条 + 文案提示（不伪造进度）。
+ */
+export default function UploadProgress({ percent, phase, hint, errorMessage }: Props) {
   const { t } = useTranslation()
-  if (!stage) return null
 
-  const isAvatarStage = (STAGES_AVATAR as readonly string[]).includes(stage)
-  const list = isAvatarStage ? STAGES_AVATAR : STAGES_ORDER
-  const currentIdx = list.indexOf(stage)
+  if (phase === 'failed') {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-[rgb(var(--danger))]/25 bg-[rgb(var(--danger))]/10 p-3 text-xs text-[rgb(var(--danger))]">
+        <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+        <div className="min-w-0">
+          <div className="font-medium">{t('uploading.failed')}</div>
+          {errorMessage && <div className="mt-0.5 break-words opacity-90">{errorMessage}</div>}
+        </div>
+      </div>
+    )
+  }
+
+  if (phase === 'ready') {
+    return (
+      <div className="flex items-center gap-2 rounded-md border border-[rgb(var(--success))]/25 bg-[rgb(var(--success))]/10 p-3 text-xs text-[rgb(var(--success))]">
+        <CheckCircle2 className="h-4 w-4 flex-shrink-0" aria-hidden />
+        <span className="font-medium">{t('uploading.ready')}</span>
+      </div>
+    )
+  }
+
+  const isUploading = phase === 'uploading'
+  const value = percent == null ? null : Math.min(100, Math.max(0, percent))
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-1.5">
-        {list.map((s, idx) => {
-          const reached = done || idx <= currentIdx
-          const active = !done && idx === currentIdx
-          return (
-            <div
-              key={s}
-              className={cn(
-                'flex items-center gap-2.5 text-sm transition',
-                reached
-                  ? active
-                    ? 'text-brand-600 dark:text-brand-400'
-                    : 'text-success-600 dark:text-success-500'
-                  : 'text-[rgb(var(--text-muted))]',
-              )}
-            >
-              {done || idx < currentIdx ? (
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              ) : active ? (
-                <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
-              ) : (
-                <div className="w-4 h-4 rounded-full border-2 border-current flex-shrink-0 opacity-40" />
-              )}
-              <span>{t(`uploading.${s}`)}</span>
-            </div>
-          )
-        })}
+    <div className="space-y-2" role="status" aria-live="polite">
+      <div className="flex items-center gap-2 text-xs text-[rgb(var(--text-2))]">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-[rgb(var(--accent))]" aria-hidden />
+        <span className="font-medium">
+          {isUploading ? t('uploading.uploading') : t('uploading.processing')}
+        </span>
+        {isUploading && value != null && <span className="num ml-auto">{Math.round(value)}%</span>}
       </div>
-
-      {percent != null && (
-        <div className="h-1 bg-[rgb(var(--surface-2))] rounded-full overflow-hidden">
+      <div className="h-1 overflow-hidden rounded-full bg-[rgb(var(--surface-3))]">
+        {isUploading && value != null ? (
           <div
-            className="h-full bg-gradient-to-r from-brand-500 to-info-500 transition-all duration-500"
-            style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+            className="h-full bg-[rgb(var(--accent))] transition-[width] duration-200"
+            style={{ width: `${value}%` }}
           />
-        </div>
-      )}
+        ) : (
+          <div className="h-full w-1/3 animate-progress bg-[rgb(var(--accent))]" />
+        )}
+      </div>
+      {hint && <p className="text-[11px] text-[rgb(var(--text-3))]">{hint}</p>}
     </div>
   )
-}
-
-/** 简单的阶段模拟器 - 用于前端没真实进度时给用户视觉反馈 */
-export function useProgressSimulator(
-  stages: ProgressStage[],
-  interval = 1200,
-  onDone?: () => void,
-) {
-  const [idx, setIdx] = useState(0)
-  useEffect(() => {
-    if (idx >= stages.length) {
-      onDone?.()
-      return
-    }
-    const t = setTimeout(() => setIdx((i) => i + 1), interval)
-    return () => clearTimeout(t)
-  }, [idx, stages, interval, onDone])
-  return {
-    stage: stages[idx] ?? null,
-    done: idx >= stages.length,
-  }
 }

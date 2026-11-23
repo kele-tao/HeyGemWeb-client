@@ -1,71 +1,77 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 import { api } from '@/api'
-import type { VideoStatus } from '@/types'
+import type { VideoProgress } from '@/types'
+
+const START_DELAY = 2000
+const MAX_DELAY = 10000
 
 /**
- * 智能轮询视频合成进度。
- * - 指数退避(2s -> 4s -> 8s,上限 10s)
- * - 全部任务完成后自动停止
- * - 失败后重试但保持间隔
- * - 页面不可见时暂停轮询
+ * 作品进度轮询（GET /api/videos/progress）。
+ * - queued/processing 存在时 2s 起，指数退避到 10s
+ * - 全部终态即停止
+ * - 页面不可见时暂停
  */
 export function useVideoProgress() {
   const videos = useAppStore((s) => s.videos)
-  const updateVideo = useAppStore((s) => s.updateVideo)
+  const applyProgress = useAppStore((s) => s.applyProgress)
   const timerRef = useRef<number | null>(null)
-  const delayRef = useRef(2000)
+  const delayRef = useRef(START_DELAY)
   const pausedRef = useRef(false)
+  const inFlightRef = useRef(false)
+
+  const activeIds = videos
+    .filter((v) => v.status === 'queued' || v.status === 'processing')
+    .map((v) => v.id)
+  const activeKey = activeIds.join(',')
 
   useEffect(() => {
-    const active = videos.filter(
-      (v) => v.status === 'queued' || v.status === 'processing',
-    )
-    if (active.length === 0) {
+    if (!activeKey) {
       if (timerRef.current) {
         clearTimeout(timerRef.current)
         timerRef.current = null
       }
-      delayRef.current = 2000
+      delayRef.current = START_DELAY
       return
     }
 
+    let cancelled = false
+
     const tick = async () => {
+      if (cancelled) return
       if (pausedRef.current) {
         timerRef.current = window.setTimeout(tick, 5000)
         return
       }
-
-      const codes = useAppStore
+      if (inFlightRef.current) return
+      const ids = useAppStore
         .getState()
-        .videos
-        .filter((v) => v.status === 'queued' || v.status === 'processing')
-        .map((v) => v.task_code)
-        .filter(Boolean)
+        .videos.filter((v) => v.status === 'queued' || v.status === 'processing')
+        .map((v) => v.id)
+      if (ids.length === 0) return
 
-      if (codes.length === 0) return
-
+      inFlightRef.current = true
       try {
-        const results = await api.batchCheck(codes)
-        for (const r of results) {
-          const status = mapStatus(r.status)
-          if (!status) continue
-          const patch: Partial<{ status: VideoStatus; videoUrl: string; error_message: string }> = { status }
-          if (status === 'success' && r.video_url) patch.videoUrl = r.video_url
-          if (status === 'failed' && r.msg) patch.error_message = r.msg
-          updateVideo(r.code, patch)
-        }
-        delayRef.current = 2000
+        const results: VideoProgress[] = await api.videos.progress(ids)
+        applyProgress(results)
+        const stillActive = results.some(
+          (r) => r.status === 'queued' || r.status === 'processing',
+        )
+        delayRef.current = stillActive
+          ? Math.min(delayRef.current * 1.6, MAX_DELAY)
+          : START_DELAY
       } catch {
-        delayRef.current = Math.min(delayRef.current * 1.5, 10000)
+        delayRef.current = Math.min(delayRef.current * 1.8, MAX_DELAY)
       } finally {
-        timerRef.current = window.setTimeout(tick, delayRef.current)
+        inFlightRef.current = false
+        if (!cancelled) {
+          timerRef.current = window.setTimeout(tick, delayRef.current)
+        }
       }
     }
 
     timerRef.current = window.setTimeout(tick, 0)
 
-    // 页面可见性
     const onVisibility = () => {
       pausedRef.current = document.hidden
     }
@@ -73,27 +79,63 @@ export function useVideoProgress() {
     onVisibility()
 
     return () => {
+      cancelled = true
       document.removeEventListener('visibilitychange', onVisibility)
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [videos, updateVideo])
+  }, [activeKey, applyProgress])
 }
 
-function mapStatus(s: string): VideoStatus | null {
-  switch (s) {
-    case '排队中':
-    case 'Queued':
-      return 'queued'
-    case '处理中':
-    case 'Processing':
-      return 'processing'
-    case '成功':
-    case 'Success':
-      return 'success'
-    case '失败':
-    case 'Failed':
-      return 'failed'
-    default:
-      return null
-  }
+/**
+ * 单个资源的处理状态轮询（数字人 processing → ready/failed，声音 training → complete/failed）。
+ * 2s 起，指数退避到 10s；到达终态或超时即停止。
+ */
+export function usePollResource(
+  active: boolean,
+  fetcher: () => Promise<{ status: string }>,
+  onUpdate: (value: { status: string }) => void,
+  onSettled?: (status: string) => void,
+) {
+  const fetcherRef = useRef(fetcher)
+  const updateRef = useRef(onUpdate)
+  const settledRef = useRef(onSettled)
+  fetcherRef.current = fetcher
+  updateRef.current = onUpdate
+  settledRef.current = onSettled
+
+  useEffect(() => {
+    if (!active) return
+    let cancelled = false
+    let timer: number | null = null
+    let delay = 2000
+    let attempts = 0
+    const MAX_ATTEMPTS = 150 // ≈ 20 分钟上限
+
+    const tick = async () => {
+      if (cancelled) return
+      attempts += 1
+      try {
+        const value = await fetcherRef.current()
+        if (cancelled) return
+        updateRef.current(value)
+        const terminal = ['ready', 'complete', 'failed'].includes(value.status)
+        if (terminal) {
+          settledRef.current?.(value.status)
+          return
+        }
+        delay = Math.min(delay * 1.5, 10000)
+      } catch {
+        delay = Math.min(delay * 1.8, 10000)
+      }
+      if (attempts >= MAX_ATTEMPTS) return
+      timer = window.setTimeout(tick, delay)
+    }
+
+    timer = window.setTimeout(tick, 600)
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [active])
 }

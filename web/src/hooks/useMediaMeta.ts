@@ -44,16 +44,44 @@ export function useMediaMeta(file: File | null): Result {
 
     let cancelled = false
 
-    const onLoaded = () => {
+    const apply = () => {
       if (cancelled) return
+      // 流式录制的 webm 元数据里没有 duration（为 Infinity），视为未知交给服务端探测
+      const raw = el.duration
+      const duration = Number.isFinite(raw) && raw > 0 ? raw : undefined
       setMeta({
         loading: false,
         error: null,
-        duration: el.duration,
-        width: isVideo ? (el as HTMLVideoElement).videoWidth : undefined,
-        height: isVideo ? (el as HTMLVideoElement).videoHeight : undefined,
+        duration,
+        width: isVideo ? (el as HTMLVideoElement).videoWidth || undefined : undefined,
+        height: isVideo ? (el as HTMLVideoElement).videoHeight || undefined : undefined,
       })
       URL.revokeObjectURL(url)
+    }
+
+    const onLoaded = () => {
+      if (cancelled) return
+      const raw = el.duration
+      if (Number.isFinite(raw) && raw > 0) {
+        apply()
+        return
+      }
+      // 某些容器需要先 seek 到末尾才能得到真实时长
+      const onDuration = () => {
+        el.removeEventListener('durationchange', onDuration)
+        apply()
+      }
+      el.addEventListener('durationchange', onDuration)
+      try {
+        el.currentTime = Number.MAX_SAFE_INTEGER
+      } catch {
+        apply()
+      }
+      // 兜底：1.5s 后无论是否拿到都按"未知时长"完成
+      setTimeout(() => {
+        el.removeEventListener('durationchange', onDuration)
+        apply()
+      }, 1500)
     }
 
     const onError = () => {

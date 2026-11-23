@@ -1,16 +1,16 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Mic, Upload, FileAudio, AlertCircle } from 'lucide-react'
-import Modal from '@/components/feedback/Modal'
-import { api } from '@/api'
-import { useAppStore } from '@/store/useAppStore'
+import { AlertCircle, FileAudio, Mic, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { cn, formatBytes } from '@/lib/utils'
-import UploadProgress, {
-  useProgressSimulator,
-  type ProgressStage,
-} from '@/components/feedback/UploadProgress'
+import Modal from '@/components/feedback/Modal'
+import UploadProgress, { type UploadPhase } from '@/components/feedback/UploadProgress'
 import { useMediaMeta } from '@/hooks/useMediaMeta'
+import { usePollResource } from '@/hooks/useVideoProgress'
+import { api } from '@/api'
+import { ApiError } from '@/api/client'
+import { useAppStore } from '@/store/useAppStore'
+import { cn, formatBytes } from '@/lib/utils'
+import type { Voice } from '@/types'
 
 interface Props {
   open: boolean
@@ -19,65 +19,90 @@ interface Props {
 
 const MAX_SIZE = 200 * 1024 * 1024
 const MIN_DURATION = 30
-const STAGES: ProgressStage[] = [
-  'preparing',
-  'extractingAudio',
-  'trainingModel',
-  'finalizing',
-]
+const MAX_DURATION = 600
+const AUDIO_EXT = /\.(wav|mp3|m4a|flac)$/i
 
+/**
+ * 上传声音：POST /api/voices（name + audio_file）→ 返回 training 记录
+ * → 轮询 GET /api/voices/{id} 直到 complete / failed（2s 起，退避到 10s）。
+ */
 export default function VoiceUploadModal({ open, onClose }: Props) {
   const { t } = useTranslation()
-  const addVoice = useAppStore((s) => s.addVoice)
+  const upsertVoice = useAppStore((s) => s.upsertVoice)
+  const uid = useId()
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
   const [name, setName] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [trainResult, setTrainResult] = useState<{
-    asr_format_audio_url: string
-    reference_audio_text: string
-  } | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [phase, setPhase] = useState<UploadPhase>('uploading')
+  const [percent, setPercent] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [created, setCreated] = useState<Voice | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const meta = useMediaMeta(file)
 
-  const { stage, done: stageDone } = useProgressSimulator(
-    uploading && !trainResult ? STAGES : [],
-    1100,
-    () => {},
+  usePollResource(
+    !!created && created.status === 'training',
+    () => api.voices.get(created!.id),
+    (value) => {
+      const next = { ...created!, ...(value as Voice) }
+      setCreated(next)
+      upsertVoice(next)
+      if (next.status === 'complete') {
+        toast.success(t('voices.done'))
+        finish()
+      }
+      if (next.status === 'failed') {
+        setPhase('failed')
+        setErrorMessage(next.error_message || t('fail.unknown'))
+        setBusy(false)
+      }
+    },
   )
-
-  // 客户端校验
-  const validationError = (() => {
-    if (!file) return null
-    if (meta.loading) return null
-    if (meta.error) return meta.error
-    if (meta.duration && meta.duration < MIN_DURATION) {
-      return `音频时长太短,需 ≥ ${MIN_DURATION} 秒(当前 ${Math.round(meta.duration)} 秒)`
-    }
-    return null
-  })()
-
-  const canSubmit =
-    !!name.trim() && !!file && !validationError && !uploading
 
   const reset = () => {
     setName('')
     setFile(null)
-    setUploading(false)
     setDragOver(false)
-    setTrainResult(null)
+    setPhase('uploading')
+    setPercent(null)
+    setErrorMessage(null)
+    setCreated(null)
+    setBusy(false)
   }
 
-  const handleClose = () => {
-    if (uploading && !trainResult) return
+  // 成功/失败后无条件收起（不受 busy 守卫影响）
+  const finish = () => {
+    setBusy(false)
     reset()
     onClose()
   }
 
-  const handleFile = (f: File | undefined) => {
+  const handleClose = () => {
+    if (busy) return
+    reset()
+    onClose()
+  }
+
+  // 客户端只预检"能读到时长"的明确违规；读不到时交给服务端校验（MEDIA_PROBE_FAILED）
+  const probeFailed = !meta.loading && !!meta.error
+  const validationError = (() => {
+    if (!file) return null
+    if (meta.loading || meta.error) return null
+    if (meta.duration != null && meta.duration < MIN_DURATION) {
+      return `音频时长不足，需 ≥ ${MIN_DURATION} 秒（当前 ${Math.round(meta.duration)} 秒）`
+    }
+    if (meta.duration != null && meta.duration > MAX_DURATION) {
+      return `音频时长超出上限，需 ≤ ${MAX_DURATION / 60} 分钟`
+    }
+    return null
+  })()
+
+  const acceptFile = (f: File | undefined) => {
     if (!f) return
-    if (!f.type.startsWith('audio/')) {
+    if (!f.type.startsWith('audio/') && !AUDIO_EXT.test(f.name)) {
       toast.error(t('notify.fileTypeError'))
       return
     }
@@ -86,62 +111,67 @@ export default function VoiceUploadModal({ open, onClose }: Props) {
       return
     }
     setFile(f)
-    if (!name) {
-      setName(f.name.replace(/\.[^/.]+$/, ''))
-    }
+    setErrorMessage(null)
+    if (!name) setName(f.name.replace(/\.[^/.]+$/, '').slice(0, 80))
   }
 
-  const handleSubmit = async () => {
-    if (!name.trim() || !file) {
-      toast.error(t('notify.voiceNameAndFile'))
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (busy) return
+    const trimmed = name.trim()
+    if (!trimmed || !file) {
+      toast.error(t('voices.nameLabel'))
       return
     }
-    setUploading(true)
-    setTrainResult(null)
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+    setBusy(true)
+    setPercent(0)
+    setPhase('uploading')
+    setErrorMessage(null)
     try {
-      const data = await api.trainVoice(file)
-      setTrainResult(data)
-      // 等进度条跑完再关闭,给用户完成感
-      setTimeout(() => {
-        addVoice({
-          id: `voice-${Date.now()}`,
-          name: name.trim(),
-          status: 'complete',
-          date: new Date().toISOString().slice(0, 10),
-          asr_format_audio_url: data.asr_format_audio_url,
-          reference_audio_text: data.reference_audio_text,
-        })
-        toast.success(t('notify.voiceTrainOk'))
-        handleClose()
-      }, 1500)
-    } catch (e: any) {
-      toast.error(e.message || t('notify.voiceTrainFail'))
-      setUploading(false)
+      const voice = await api.voices.create(trimmed, file, (p) => setPercent(p))
+      upsertVoice(voice)
+      setCreated(voice)
+      setPhase(voice.status === 'training' ? 'processing' : 'ready')
+      if (voice.status === 'failed') {
+        setPhase('failed')
+        setErrorMessage(voice.error_message)
+        setBusy(false)
+      } else if (voice.status === 'complete') {
+        toast.success(t('voices.done'))
+        finish()
+      }
+    } catch (err) {
+      const e2 = err as ApiError
+      setPhase('failed')
+      setErrorMessage(e2.message || t('fail.unknown'))
+      setBusy(false)
     }
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={t('modal.cloneVoice')}>
-      <div className="p-6 space-y-5">
-        <div>
-          <label className="text-sm font-medium block mb-1.5">
-            {t('modal.voiceName')}
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t('modal.voiceNamePlaceholder')}
-            className="input"
-            disabled={uploading}
-          />
-        </div>
+    <Modal open={open} onClose={handleClose} title={t('voices.upload')} dismissible={!busy}>
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4 p-5">
+          <div>
+            <label htmlFor={`${uid}-name`} className="form-label">
+              {t('voices.nameLabel')}
+            </label>
+            <input
+              id={`${uid}-name`}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('voices.namePlaceholder')}
+              className="input"
+              maxLength={80}
+              disabled={busy}
+            />
+          </div>
 
-        <div>
-          <label className="text-sm font-medium block mb-1.5">
-            {t('modal.selectAudio')}
-          </label>
           <div
-            onClick={() => inputRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault()
               setDragOver(true)
@@ -150,99 +180,93 @@ export default function VoiceUploadModal({ open, onClose }: Props) {
             onDrop={(e) => {
               e.preventDefault()
               setDragOver(false)
-              handleFile(e.dataTransfer.files[0])
+              acceptFile(e.dataTransfer.files[0])
             }}
             className={cn(
-              'border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition',
+              'rounded-lg border border-dashed p-5 text-center transition-colors',
               dragOver
-                ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-500/10'
-                : 'border-[rgb(var(--border))] hover:border-brand-500',
-              uploading && 'pointer-events-none opacity-60',
+                ? 'border-[rgb(var(--accent))] bg-[rgb(var(--accent))]/5'
+                : 'border-[rgb(var(--hairline-strong))]',
+              busy && 'pointer-events-none opacity-60',
             )}
           >
             <input
               ref={inputRef}
               type="file"
-              accept="audio/*"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0])}
+              accept="audio/*,.wav,.mp3,.m4a,.flac"
+              className="sr-only"
+              onChange={(e) => acceptFile(e.target.files?.[0])}
+              aria-label={t('voices.selectAudio')}
             />
             {file ? (
-              <div className="w-full">
-                <div className="flex items-center justify-center gap-3">
-                  <div
-                    className={cn(
-                      'w-10 h-10 rounded-lg flex items-center justify-center',
-                      validationError
-                        ? 'bg-danger-50 text-danger-600'
-                        : 'bg-success-50 text-success-600',
-                    )}
-                  >
-                    {validationError ? (
-                      <AlertCircle className="w-5 h-5" />
-                    ) : (
-                      <FileAudio className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div className="text-left">
-                    <div className="text-sm font-medium">{file.name}</div>
-                    <div className="text-xs text-[rgb(var(--text-muted))] num">
-                      {formatBytes(file.size)}
-                      {meta.duration && ` · ${Math.round(meta.duration)}秒`}
-                      {meta.loading && ' · 读取中...'}
-                    </div>
+              <div className="flex items-center justify-center gap-3">
+                <div
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-md border',
+                    validationError
+                      ? 'border-[rgb(var(--danger))]/30 bg-[rgb(var(--danger))]/10 text-[rgb(var(--danger))]'
+                      : 'border-[rgb(var(--success))]/30 bg-[rgb(var(--success))]/10 text-[rgb(var(--success))]',
+                  )}
+                >
+                  {validationError ? (
+                    <AlertCircle className="h-5 w-5" aria-hidden />
+                  ) : (
+                    <FileAudio className="h-5 w-5" aria-hidden />
+                  )}
+                </div>
+                <div className="min-w-0 text-left">
+                  <div className="max-w-[220px] truncate text-sm font-medium">{file.name}</div>
+                  <div className="num text-[11px] text-[rgb(var(--text-3))]">
+                    {formatBytes(file.size)}
+                    {meta.duration != null && ` · ${Math.round(meta.duration)} 秒`}
+                    {!meta.loading && meta.duration == null && !meta.error && ' · 时长待服务端解析'}
+                    {meta.loading && ' · 读取中…'}
                   </div>
                 </div>
-                {validationError && (
-                  <div className="text-xs text-danger-600 mt-2 text-center px-2">
-                    {validationError}
-                  </div>
-                )}
               </div>
             ) : (
               <>
-                <Upload className="w-8 h-8 mx-auto text-[rgb(var(--text-muted))] mb-2" />
-                <div className="text-sm text-[rgb(var(--text-muted))]">
-                  {t('modal.selectAudio')}
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-md border border-[rgb(var(--hairline))] bg-[rgb(var(--surface-2))] text-[rgb(var(--text-2))]">
+                  <Upload className="h-4 w-4" aria-hidden />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="text-sm font-medium hover:text-[rgb(var(--accent))]"
+                >
+                  {t('voices.selectAudio')}
+                </button>
               </>
             )}
           </div>
-          <p className="text-xs text-[rgb(var(--text-muted))] mt-2">
-            {t('modal.audioHint')}
-          </p>
+          {validationError && <p className="text-[11px] text-[rgb(var(--danger))]">{validationError}</p>}
+          {probeFailed && (
+            <p className="text-[11px] text-[rgb(var(--warning))]">
+              {t('notify.mediaProbeFailed')}（仍可提交，由服务端校验）
+            </p>
+          )}
+          <p className="text-[11px] text-[rgb(var(--text-3))]">{t('voices.audioHint')}</p>
+
+          {(busy || (phase === 'failed' && errorMessage)) && (
+            <UploadProgress
+              percent={percent}
+              phase={phase}
+              hint={phase === 'processing' ? t('voices.trainingHint') : undefined}
+              errorMessage={errorMessage}
+            />
+          )}
         </div>
 
-        {uploading && (
-          <div className="p-4 rounded-lg bg-brand-50/50 dark:bg-brand-500/5 border border-brand-500/20">
-            <UploadProgress stage={stage} done={!!trainResult || stageDone} />
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            onClick={handleClose}
-            disabled={uploading && !trainResult}
-            className="btn-secondary"
-          >
-            {t('common.cancel')}
+        <div className="flex justify-end gap-2 border-t border-[rgb(var(--hairline))] px-5 py-4">
+          <button type="button" onClick={handleClose} className="btn-secondary" disabled={busy}>
+            {busy ? t('common.close') : t('common.cancel')}
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="btn-primary"
-          >
-            <Mic className="w-4 h-4" />
-            {uploading
-              ? trainResult
-                ? t('common.loading').includes('Load')
-                  ? 'Done'
-                  : '完成'
-                : t('modal.training')
-              : t('modal.startTraining')}
+          <button type="submit" className="btn-primary" disabled={busy || !file || !!validationError}>
+            <Mic className="h-4 w-4" aria-hidden />
+            {busy ? t('uploading.processing') : t('common.submit')}
           </button>
         </div>
-      </div>
+      </form>
     </Modal>
   )
 }

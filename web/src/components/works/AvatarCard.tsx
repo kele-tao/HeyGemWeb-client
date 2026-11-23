@@ -1,133 +1,150 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Trash2, Play, Pause, Plus, Calendar } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { ImageOff, Loader2, Pause, Pencil, Play, Trash2, Wand2 } from 'lucide-react'
+import { cn, formatDateTime, formatDuration } from '@/lib/utils'
 import type { Avatar } from '@/types'
-import { cn } from '@/lib/utils'
+import StatusBadge from '@/components/ui/StatusBadge'
 
 interface Props {
   avatar: Avatar
   onDelete: () => void
-  onClick?: () => void
+  onRename: () => void
+  onUse: () => void
+  busy?: boolean
 }
 
-export default function AvatarCard({ avatar, onDelete, onClick }: Props) {
-  const { t, i18n } = useTranslation()
+export default function AvatarCard({ avatar, onDelete, onRename, onUse, busy }: Props) {
+  const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [playing, setPlaying] = useState(false)
+  const [broken, setBroken] = useState(false)
+  const ready = avatar.status === 'ready'
+  const processing = avatar.status === 'processing'
 
-  const togglePlay = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!avatar.videoUrl || !videoRef.current) return
+  const togglePlay = () => {
+    const el = videoRef.current
+    if (!el) return
     if (playing) {
-      videoRef.current.pause()
+      el.pause()
       setPlaying(false)
     } else {
-      videoRef.current.currentTime = 0
-      videoRef.current
+      el.currentTime = 0
+      void el
         .play()
         .then(() => setPlaying(true))
-        .catch(() => {})
+        .catch(() => setPlaying(false))
     }
   }
 
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'group card overflow-hidden cursor-pointer card-shine',
-        'transition-all duration-300 ease-out-expo',
-        'hover:-translate-y-1 hover:shadow-lg hover:border-[rgb(var(--border-2))]',
-      )}
-    >
-      <div className="relative aspect-video bg-ink-950 overflow-hidden">
-        {avatar.videoUrl ? (
+    <div className="card group overflow-hidden transition-colors hover:border-[rgb(var(--hairline-strong))]">
+      <div className="preview-frame aspect-video rounded-none">
+        {avatar.thumb_url && !broken ? (
+          <img
+            src={avatar.thumb_url}
+            alt={avatar.name}
+            onError={() => setBroken(true)}
+            className={cn('h-full w-full object-cover', processing && 'opacity-60')}
+          />
+        ) : avatar.video_url && !broken ? (
           <video
             ref={videoRef}
-            src={avatar.videoUrl}
+            src={avatar.video_url}
             muted
             playsInline
-            preload="metadata"
             loop
-            className={cn(
-              'w-full h-full object-cover transition-transform duration-700',
-              'group-hover:scale-110',
-            )}
+            preload="metadata"
             onEnded={() => setPlaying(false)}
+            className="h-full w-full object-cover"
           />
         ) : (
-          <img
-            src={avatar.thumbUrl}
-            alt={avatar.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-          />
+          <div className="flex h-full w-full items-center justify-center text-white/25">
+            <ImageOff className="h-7 w-7" aria-hidden />
+          </div>
         )}
 
-        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
-
-        {/* Hover 时显示播放/使用按钮 */}
-        <div
-          className={cn(
-            'absolute inset-0 flex items-center justify-center transition-all duration-300',
-            playing
-              ? 'opacity-100 bg-black/20 backdrop-blur-[2px]'
-              : 'opacity-0 group-hover:opacity-100',
-          )}
-        >
-          {avatar.videoUrl && (
-            <button
-              onClick={togglePlay}
-              className="w-11 h-11 rounded-full bg-white/95 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
-            >
-              {playing ? (
-                <Pause className="w-4 h-4 text-brand-600" />
-              ) : (
-                <Play className="w-4 h-4 text-brand-600 fill-current ml-0.5" />
-              )}
-            </button>
-          )}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/55 to-transparent" />
+        <div className="absolute left-2 top-2">
+          <StatusBadge kind="avatar" status={avatar.status} />
         </div>
 
-        {/* 标签 */}
-        <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
-          <span className="px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white text-2xs font-medium ring-1 ring-white/20">
-            {i18n.language.startsWith('zh') ? '数字人' : 'Avatar'}
-          </span>
+        {processing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 text-white">
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+            <span className="text-[11px]">{t('avatars.processingHint')}</span>
+          </div>
+        )}
+
+        {avatar.status === 'failed' && (
+          <div className="absolute inset-x-0 bottom-0 p-2.5 preview-scrim">
+            <p className="line-clamp-2 text-[11px] leading-snug text-white/85">
+              {avatar.error_message || t('avatars.failedHint')}
+            </p>
+          </div>
+        )}
+
+        {avatar.video_url && avatar.status === 'ready' && (
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+            aria-label={playing ? '暂停预览' : '播放预览'}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/92 text-[rgb(20_20_19)]">
+              {playing ? (
+                <Pause className="h-4 w-4" aria-hidden />
+              ) : (
+                <Play className="ml-0.5 h-4 w-4 fill-current" aria-hidden />
+              )}
+            </span>
+          </button>
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <div className="flex items-center gap-1 rounded-md bg-black/55 p-1">
+            <button
+              type="button"
+              onClick={onRename}
+              className="rounded p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
+              aria-label={t('avatars.rename')}
+              title={t('avatars.rename')}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={busy}
+              className="rounded p-1.5 text-white/80 hover:bg-white/15 hover:text-[rgb(var(--danger))] disabled:opacity-40"
+              aria-label={t('common.delete')}
+              title={t('common.delete')}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="px-3.5 py-2.5">
-        <div className="font-medium text-sm truncate" title={avatar.title}>
-          {avatar.title}
-        </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <div className="text-xs text-[rgb(var(--text-muted))] flex items-center gap-1 num">
-            <Calendar className="w-3 h-3" />
-            {formatDate(avatar.date)}
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium" title={avatar.name}>
+            {avatar.name}
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onClick?.()
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-2xs px-1.5 py-0.5 rounded-md text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 flex items-center gap-0.5"
-              title={t('quick.useAsTemplate')}
-            >
-              <Plus className="w-3 h-3" />
-              {i18n.language.startsWith('zh') ? '使用' : 'Use'}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete()
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-1 rounded-md text-[rgb(var(--text-muted))] hover:bg-danger-50 hover:text-danger-500 dark:hover:bg-danger-500/10"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+          <div className="num mt-0.5 text-[11px] text-[rgb(var(--text-3))]">
+            {formatDateTime(avatar.created_at)}
+            {avatar.duration_ms != null && ` · ${formatDuration(avatar.duration_ms)}`}
           </div>
         </div>
+        <button
+          type="button"
+          onClick={onUse}
+          disabled={!ready}
+          className="btn btn-secondary btn-sm flex-shrink-0"
+          title={!ready ? t('avatars.processingHint') : t('avatars.use')}
+        >
+          <Wand2 className="h-3.5 w-3.5" aria-hidden />
+          {t('avatars.use')}
+        </button>
       </div>
     </div>
   )

@@ -14,16 +14,8 @@ export default defineConfig({
     port: 8080,
     host: '0.0.0.0',
     proxy: {
+      // 后端所有能力都在 /api 下（含签名媒体与公开分享），保留单一代理规则即可
       '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      // 只代理有扩展名的静态资源,避免吞掉 SPA 路由 /avatars
-      '^/static/.*\\..*$': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '^/avatars/.*\\..*$': {
         target: 'http://localhost:8000',
         changeOrigin: true,
       },

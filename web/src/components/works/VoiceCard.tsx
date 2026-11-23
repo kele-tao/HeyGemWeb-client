@@ -1,180 +1,137 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Play,
-  Pause,
-  Trash2,
-  Loader2,
-  CheckCircle2,
-  Clock,
-  Mic,
-  Calendar,
-} from 'lucide-react'
-import { formatDate } from '@/lib/utils'
-import { api } from '@/api'
-import { useAppStore } from '@/store/useAppStore'
-import type { Voice } from '@/types'
+import { Loader2, Pause, Pencil, Play, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { cn } from '@/lib/utils'
+import { api } from '@/api'
+import { ApiError } from '@/api/client'
+import { cn, formatDateTime, formatDuration } from '@/lib/utils'
+import type { Voice } from '@/types'
+import StatusBadge from '@/components/ui/StatusBadge'
 
 interface Props {
   voice: Voice
   onDelete: () => void
+  onRename: () => void
+  busy?: boolean
 }
 
-export default function VoiceCard({ voice, onDelete }: Props) {
+export default function VoiceCard({ voice, onDelete, onRename, busy }: Props) {
   const { t } = useTranslation()
-  const [playing, setPlaying] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
-  const getVoiceById = useAppStore((s) => s.getVoiceById)
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const complete = voice.status === 'complete'
 
-  const stop = () => {
-    if (audio) {
-      audio.pause()
-      audio.currentTime = 0
-    }
-    setPlaying(false)
-  }
+  useEffect(
+    () => () => {
+      audioRef.current?.pause()
+      audioRef.current = null
+    },
+    [],
+  )
 
   const audition = async () => {
     if (playing) {
-      stop()
+      audioRef.current?.pause()
+      setPlaying(false)
       return
     }
-    const current = getVoiceById(voice.id)
-    if (!current?.asr_format_audio_url || !current?.reference_audio_text) {
-      toast.error(t('notify.voiceIncomplete'))
-      return
-    }
+    if (!complete) return
     setLoading(true)
     try {
-      const data = await api.auditionVoice(
-        voice.id,
-        t('editor.auditionText'),
-        current,
-      )
-      const a = new Audio(data.url)
-      a.onended = () => setPlaying(false)
-      a.onerror = () => {
+      const result = await api.voices.audition(voice.id, t('voices.auditionText'))
+      const audio = new Audio(result.url)
+      audioRef.current = audio
+      audio.onended = () => setPlaying(false)
+      audio.onerror = () => {
         setPlaying(false)
-        toast.error(t('notify.audioFail'))
+        toast.error(t('notify.networkError'))
       }
-      a.play()
-      setAudio(a)
+      await audio.play()
       setPlaying(true)
-    } catch (e: any) {
-      toast.error(e.message || t('notify.audioFail'))
+    } catch (err) {
+      const e = err as ApiError
+      toast.error(e.message || t('notify.networkError'))
     } finally {
       setLoading(false)
     }
   }
 
-  const complete = voice.status === 'complete'
-
   return (
-    <div
-      className={cn(
-        'card p-4 flex flex-col gap-3 relative overflow-hidden group',
-        'transition-all duration-300 ease-out-expo',
-        'hover:-translate-y-0.5 hover:shadow-md hover:border-[rgb(var(--border-2))]',
-      )}
-    >
-      {/* 装饰背景 */}
-      <div
-        className={cn(
-          'absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl opacity-20',
-          complete
-            ? 'bg-gradient-to-br from-success-500 to-emerald-500'
-            : 'bg-gradient-to-br from-warning-500 to-orange-500',
-        )}
-        aria-hidden
-      />
-
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-              complete
-                ? 'bg-gradient-to-br from-success-500 to-emerald-500 text-white'
-                : 'bg-gradient-to-br from-warning-500 to-orange-500 text-white',
-            )}
-          >
-            <Mic className="w-4 h-4" />
+    <div className="card group flex flex-col gap-3 p-4 transition-colors hover:border-[rgb(var(--hairline-strong))]">
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border',
+            complete
+              ? 'border-[rgb(var(--accent))]/25 bg-[rgb(var(--accent))]/10 text-[rgb(var(--accent))]'
+              : 'border-[rgb(var(--hairline))] bg-[rgb(var(--surface-2))] text-[rgb(var(--text-3))]',
+          )}
+          aria-hidden
+        >
+          {voice.status === 'training' ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <span className="text-xs font-semibold">AI</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium" title={voice.name}>
+            {voice.name}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-semibold truncate" title={voice.name}>
-              {voice.name}
-            </div>
-            <div className="text-xs text-[rgb(var(--text-muted))] mt-0.5 flex items-center gap-1 num">
-              <Calendar className="w-3 h-3" />
-              {formatDate(voice.date)}
-            </div>
+          <div className="num mt-0.5 text-[11px] text-[rgb(var(--text-3))]">
+            {formatDateTime(voice.created_at)}
+            {voice.duration_ms != null && ` · ${formatDuration(voice.duration_ms)}`}
           </div>
         </div>
-        <button
-          onClick={onDelete}
-          className="p-1.5 rounded-lg text-[rgb(var(--text-muted))] hover:bg-danger-50 hover:text-danger-500 dark:hover:bg-danger-500/10 transition flex-shrink-0 opacity-0 group-hover:opacity-100"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <button
+            type="button"
+            onClick={onRename}
+            className="btn btn-ghost btn-icon btn-sm"
+            aria-label={t('voices.rename')}
+            title={t('voices.rename')}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={busy}
+            className="btn btn-ghost btn-icon btn-sm hover:text-[rgb(var(--danger))]"
+            aria-label={t('common.delete')}
+            title={t('common.delete')}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* 波形占位 */}
-      {playing && (
-        <div className="relative flex items-end gap-0.5 h-7 px-1">
-          {Array.from({ length: 24 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-1 bg-gradient-to-t from-brand-500 to-info-500 rounded-full animate-pulse"
-              style={{
-                height: `${20 + Math.sin(i * 0.5 + Date.now() / 200) * 8}px`,
-                animationDelay: `${i * 0.05}s`,
-                animationDuration: `${0.6 + (i % 3) * 0.2}s`,
-              }}
-            />
-          ))}
-        </div>
+      {voice.status === 'failed' && (
+        <p className="line-clamp-2 rounded-md border border-[rgb(var(--danger))]/20 bg-[rgb(var(--danger))]/8 px-2 py-1.5 text-[11px] text-[rgb(var(--danger))]">
+          {voice.error_message || t('fail.unknown')}
+        </p>
+      )}
+      {voice.status === 'training' && (
+        <p className="text-[11px] text-[rgb(var(--text-3))]">{t('voices.trainingHint')}</p>
       )}
 
-      <div className="relative flex items-center justify-between">
-        <span
-          className={
-            complete
-              ? 'badge-success'
-              : 'badge-warning'
-          }
-        >
-          {complete ? (
-            <CheckCircle2 className="w-3 h-3" />
-          ) : (
-            <Clock className="w-3 h-3" />
-          )}
-          {complete ? t('works.status.complete') : t('works.status.training')}
-        </span>
-
+      <div className="flex items-center justify-between">
+        <StatusBadge kind="voice" status={voice.status} />
         <button
+          type="button"
           onClick={audition}
           disabled={!complete || loading}
-          className={cn(
-            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition',
-            'disabled:opacity-40 disabled:cursor-not-allowed',
-            playing
-              ? 'bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
-              : 'text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10',
-          )}
+          className="btn btn-secondary btn-sm"
         >
           {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
           ) : playing ? (
-            <Pause className="w-4 h-4" />
+            <Pause className="h-3.5 w-3.5" aria-hidden />
           ) : (
-            <Play className="w-4 h-4 fill-current ml-0.5" />
+            <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
           )}
-          <span className="text-xs font-medium">
-            {playing ? t('editor.auditioning') : t('editor.audition')}
-          </span>
+          {playing ? t('voices.auditioning') : t('voices.audition')}
         </button>
       </div>
     </div>

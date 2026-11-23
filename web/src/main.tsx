@@ -22,18 +22,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             style: {
               background: 'rgb(var(--surface))',
               color: 'rgb(var(--text))',
-              border: '1px solid rgb(var(--border))',
-              boxShadow: '0 8px 32px -8px rgba(0,0,0,0.16)',
-              borderRadius: '12px',
+              border: '1px solid rgb(var(--hairline))',
+              boxShadow: '0 18px 40px -24px rgba(0,0,0,0.85)',
+              borderRadius: '8px',
               padding: '10px 14px',
-              fontSize: '14px',
+              fontSize: '13px',
             },
-            success: {
-              iconTheme: { primary: '#22c55e', secondary: '#fff' },
-            },
-            error: {
-              iconTheme: { primary: '#ef4444', secondary: '#fff' },
-            },
+            success: { iconTheme: { primary: 'rgb(79,169,110)', secondary: 'rgb(16,18,21)' } },
+            error: { iconTheme: { primary: 'rgb(229,72,77)', secondary: 'rgb(16,18,21)' } },
           }}
         />
       </BrowserRouter>
@@ -44,13 +40,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // 注册 Service Worker (生产环境)
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        if (import.meta.env.DEV) console.log('SW registered:', reg.scope)
-      })
-      .catch((err) => {
-        if (import.meta.env.DEV) console.warn('SW registration failed:', err)
-      })
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      if (import.meta.env.DEV) console.warn('SW registration failed:', err)
+    })
   })
 }

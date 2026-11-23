@@ -1,163 +1,224 @@
 import { create } from 'zustand'
 import { api } from '@/api'
-import type { AppData, Avatar, GeneratedVideo, Voice } from '@/types'
+import { ApiError } from '@/api/client'
+import type { Avatar, Bootstrap, ServerInfo, Stats, User, Video, VideoProgress, Voice } from '@/types'
+
+const EMPTY_STATS: Stats = {
+  videos: 0,
+  avatars: 0,
+  voices: 0,
+  success_rate: null,
+  active_tasks: 0,
+}
 
 interface AppState {
-  voices: Voice[]
+  user: User | null
   avatars: Avatar[]
-  videos: GeneratedVideo[]
+  voices: Voice[]
+  videos: Video[]
+  stats: Stats
+  server: ServerInfo | null
+  /** 首屏数据是否已就绪 */
   isDataLoaded: boolean
-  /** 最近使用的模特 ID */
+  /** 首屏加载中 */
+  isLoading: boolean
+  /** 加载失败文案（后端不可用时明确报错，不做本地回退） */
+  loadError: string | null
+  /** 最近使用的数字人 / 声音（仅本地偏好） */
   recentAvatarId: string | null
-  /** 最近使用的声音 ID */
   recentVoiceId: string | null
 
-  // 增删
-  addVoice: (v: Voice) => void
-  addAvatar: (a: Avatar) => void
-  addVideo: (v: GeneratedVideo) => void
-  removeVoice: (id: string) => void
+  applyBootstrap: (data: Bootstrap) => void
+  setBootstrap: (data: Bootstrap) => void
+  setLoading: (loading: boolean) => void
+  setLoadError: (message: string | null) => void
+  resetData: () => void
+
+  setAvatars: (list: Avatar[]) => void
+  setVoices: (list: Voice[]) => void
+  setVideos: (list: Video[]) => void
+  upsertAvatar: (avatar: Avatar) => void
   removeAvatar: (id: string) => void
+  upsertVoice: (voice: Voice) => void
+  removeVoice: (id: string) => void
+  upsertVideo: (video: Video) => void
   removeVideo: (id: string) => void
-  updateVideo: (taskCode: string, patch: Partial<GeneratedVideo>) => void
+  applyProgress: (list: VideoProgress[]) => void
 
-  // 全量
-  setData: (data: Partial<AppData>) => void
-
-  // 工具
-  getVoiceById: (id: string) => Voice | undefined
-  getAvatarById: (id: string) => Avatar | undefined
+  getAvatarById: (id: string | null | undefined) => Avatar | undefined
+  getVoiceById: (id: string | null | undefined) => Voice | undefined
   setRecent: (kind: 'avatar' | 'voice', id: string) => void
 }
 
-/** 防御性数据校验 */
-function sanitizeData(raw: unknown): AppData {
-  const r = (raw ?? {}) as Partial<AppData>
+function sortByCreatedDesc<T extends { created_at: string }>(list: T[]): T[] {
+  return [...list].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+}
+
+/** 用本地资源数量补充统计，保证增删后立即一致 */
+function deriveStats(state: {
+  videos: Video[]
+  avatars: Avatar[]
+  voices: Voice[]
+  stats: Stats
+}): Stats {
+  const finished = state.videos.filter((v) => v.status === 'success' || v.status === 'failed')
+  const success = state.videos.filter((v) => v.status === 'success').length
   return {
-    voices: Array.isArray(r.voices) ? r.voices.filter(isVoice) : [],
-    avatars: Array.isArray(r.avatars) ? r.avatars.filter(isAvatar) : [],
-    generatedVideos: Array.isArray(r.generatedVideos)
-      ? r.generatedVideos.filter(isVideo)
-      : [],
+    videos: state.videos.length,
+    avatars: state.avatars.length,
+    voices: state.voices.length,
+    success_rate: finished.length === 0 ? null : success / finished.length,
+    active_tasks: state.videos.filter((v) => v.status === 'queued' || v.status === 'processing')
+      .length,
   }
-}
-
-function isVoice(v: unknown): v is Voice {
-  if (!v || typeof v !== 'object') return false
-  const o = v as Record<string, unknown>
-  return (
-    typeof o.id === 'string' &&
-    typeof o.name === 'string' &&
-    (o.status === 'training' || o.status === 'complete') &&
-    typeof o.date === 'string'
-  )
-}
-
-function isAvatar(a: unknown): a is Avatar {
-  if (!a || typeof a !== 'object') return false
-  const o = a as Record<string, unknown>
-  return (
-    typeof o.id === 'string' &&
-    typeof o.title === 'string' &&
-    typeof o.date === 'string' &&
-    typeof o.videoUrl === 'string' &&
-    typeof o.thumbUrl === 'string' &&
-    typeof o.videoPath === 'string'
-  )
-}
-
-function isVideo(v: unknown): v is GeneratedVideo {
-  if (!v || typeof v !== 'object') return false
-  const o = v as Record<string, unknown>
-  return (
-    typeof o.id === 'string' &&
-    typeof o.title === 'string' &&
-    typeof o.date === 'string' &&
-    (o.status === 'queued' ||
-      o.status === 'processing' ||
-      o.status === 'success' ||
-      o.status === 'failed')
-  )
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  voices: [],
+  user: null,
   avatars: [],
+  voices: [],
   videos: [],
+  stats: EMPTY_STATS,
+  server: null,
   isDataLoaded: false,
+  isLoading: false,
+  loadError: null,
   recentAvatarId: null,
   recentVoiceId: null,
 
-  addVoice: (v) => set((s) => ({ voices: [v, ...s.voices] })),
-  addAvatar: (a) => set((s) => ({ avatars: [a, ...s.avatars] })),
-  addVideo: (v) => set((s) => ({ videos: [v, ...s.videos] })),
-  removeVoice: (id) =>
-    set((s) => ({
-      voices: s.voices.filter((v) => v.id !== id),
-      recentVoiceId: s.recentVoiceId === id ? null : s.recentVoiceId,
-    })),
-  removeAvatar: (id) =>
-    set((s) => ({
-      avatars: s.avatars.filter((a) => a.id !== id),
-      recentAvatarId: s.recentAvatarId === id ? null : s.recentAvatarId,
-    })),
-  removeVideo: (id) =>
-    set((s) => ({ videos: s.videos.filter((v) => v.id !== id) })),
-  updateVideo: (taskCode, patch) =>
-    set((s) => ({
-      videos: s.videos.map((v) =>
-        v.task_code === taskCode ? { ...v, ...patch } : v,
-      ),
-    })),
-
-  setData: (data) => {
-    const sanitized = sanitizeData(data)
+  applyBootstrap: (data) => {
+    const avatars = sortByCreatedDesc(data.avatars ?? [])
+    const voices = sortByCreatedDesc(data.voices ?? [])
+    const videos = sortByCreatedDesc(data.videos ?? [])
     set({
-      voices: sanitized.voices,
-      avatars: sanitized.avatars,
-      videos: sanitized.generatedVideos,
+      user: data.user ?? null,
+      avatars,
+      voices,
+      videos,
+      stats: data.stats ?? deriveStats({ avatars, voices, videos, stats: EMPTY_STATS }),
+      server: data.server ?? null,
       isDataLoaded: true,
+      isLoading: false,
+      loadError: null,
     })
   },
+  setBootstrap: (data) => get().applyBootstrap(data),
+  setLoading: (isLoading) => set({ isLoading }),
+  setLoadError: (loadError) => set({ loadError, isLoading: false }),
+  resetData: () =>
+    set({
+      user: null,
+      avatars: [],
+      voices: [],
+      videos: [],
+      stats: EMPTY_STATS,
+      server: null,
+      isDataLoaded: false,
+      isLoading: false,
+      loadError: null,
+    }),
 
-  getVoiceById: (id) => get().voices.find((v) => v.id === id),
-  getAvatarById: (id) => get().avatars.find((a) => a.id === id),
+  setAvatars: (list) =>
+    set((s) => {
+      const avatars = sortByCreatedDesc(list)
+      return { avatars, stats: deriveStats({ ...s, avatars }) }
+    }),
+  setVoices: (list) =>
+    set((s) => {
+      const voices = sortByCreatedDesc(list)
+      return { voices, stats: deriveStats({ ...s, voices }) }
+    }),
+  setVideos: (list) =>
+    set((s) => {
+      const videos = sortByCreatedDesc(list)
+      return { videos, stats: deriveStats({ ...s, videos }) }
+    }),
+
+  upsertAvatar: (avatar) =>
+    set((s) => {
+      const exists = s.avatars.some((a) => a.id === avatar.id)
+      const avatars = sortByCreatedDesc(
+        exists ? s.avatars.map((a) => (a.id === avatar.id ? avatar : a)) : [avatar, ...s.avatars],
+      )
+      return { avatars, stats: deriveStats({ ...s, avatars }) }
+    }),
+  removeAvatar: (id) =>
+    set((s) => {
+      const avatars = s.avatars.filter((a) => a.id !== id)
+      return {
+        avatars,
+        stats: deriveStats({ ...s, avatars }),
+        recentAvatarId: s.recentAvatarId === id ? null : s.recentAvatarId,
+      }
+    }),
+  upsertVoice: (voice) =>
+    set((s) => {
+      const exists = s.voices.some((v) => v.id === voice.id)
+      const voices = sortByCreatedDesc(
+        exists ? s.voices.map((v) => (v.id === voice.id ? voice : v)) : [voice, ...s.voices],
+      )
+      return { voices, stats: deriveStats({ ...s, voices }) }
+    }),
+  removeVoice: (id) =>
+    set((s) => {
+      const voices = s.voices.filter((v) => v.id !== id)
+      return {
+        voices,
+        stats: deriveStats({ ...s, voices }),
+        recentVoiceId: s.recentVoiceId === id ? null : s.recentVoiceId,
+      }
+    }),
+  upsertVideo: (video) =>
+    set((s) => {
+      const exists = s.videos.some((v) => v.id === video.id)
+      const videos = sortByCreatedDesc(
+        exists ? s.videos.map((v) => (v.id === video.id ? video : v)) : [video, ...s.videos],
+      )
+      return { videos, stats: deriveStats({ ...s, videos }) }
+    }),
+  removeVideo: (id) =>
+    set((s) => {
+      const videos = s.videos.filter((v) => v.id !== id)
+      return { videos, stats: deriveStats({ ...s, videos }) }
+    }),
+  applyProgress: (list) =>
+    set((s) => {
+      if (list.length === 0) return {}
+      const map = new Map(list.map((p) => [p.id, p]))
+      const videos = s.videos.map((v) => {
+        const p = map.get(v.id)
+        if (!p) return v
+        return {
+          ...v,
+          status: p.status,
+          progress: p.progress,
+          queue_position: p.queue_position,
+          error_code: p.error_code,
+          error_message: p.error_message,
+          stream_url: p.stream_url ?? v.stream_url,
+          download_url: p.download_url ?? v.download_url,
+          share_url: p.share_url ?? v.share_url,
+          updated_at: p.updated_at,
+        }
+      })
+      return { videos, stats: deriveStats({ ...s, videos }) }
+    }),
+
+  getAvatarById: (id) => (id ? get().avatars.find((a) => a.id === id) : undefined),
+  getVoiceById: (id) => (id ? get().voices.find((v) => v.id === id) : undefined),
   setRecent: (kind, id) =>
-    set(() =>
-      kind === 'avatar' ? { recentAvatarId: id } : { recentVoiceId: id },
-    ),
+    set(() => (kind === 'avatar' ? { recentAvatarId: id } : { recentVoiceId: id })),
 }))
 
-// ---------- 初始化 + 自动保存 ----------
-let saveTimer: ReturnType<typeof setTimeout> | null = null
-let isSaving = false
-
-export async function bootstrapData() {
+/** 拉取首屏聚合数据（后端不可用时明确报错并提示重试） */
+export async function bootstrapData(): Promise<void> {
+  const store = useAppStore.getState()
+  store.setLoading(true)
   try {
-    const data = await api.getData()
-    useAppStore.getState().setData(data)
-  } catch {
-    if (import.meta.env.DEV) console.error('Failed to load data')
-    useAppStore.getState().setData({})
+    const data = await api.bootstrap()
+    useAppStore.getState().applyBootstrap(data)
+  } catch (err) {
+    const e = err as ApiError
+    useAppStore.getState().setLoadError(e?.message || '数据加载失败，请稍后重试')
   }
 }
-
-useAppStore.subscribe((state) => {
-  if (!state.isDataLoaded) return
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(async () => {
-    if (isSaving) return
-    isSaving = true
-    try {
-      await api.saveData({
-        voices: state.voices,
-        avatars: state.avatars,
-        generatedVideos: state.videos,
-      })
-    } catch {
-      if (import.meta.env.DEV) console.error('Auto-save failed')
-    } finally {
-      isSaving = false
-    }
-  }, 800)
-})

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -8,30 +8,30 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="HeyGem" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0a1a" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f5f3" media="(prefers-color-scheme: light)" />
 
-    <!-- Primary Meta Tags -->
     <title>HeyGem · AI 数字人创作平台</title>
     <meta name="title" content="HeyGem · AI 数字人创作平台" />
-    <meta name="description" content="3 步生成专业级数字人视频。克隆你的声音,创建你的数字分身,输入脚本即可生成口播视频。AI 驱动的数字人创作平台。" />
+    <meta
+      name="description"
+      content="3 步生成专业级数字人视频。克隆你的声音,创建你的数字分身,输入脚本即可生成口播视频。AI 驱动的数字人创作平台。"
+    />
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="HeyGem · AI 数字人创作平台" />
     <meta property="og:description" content="3 步生成专业级数字人视频。让 AI 帮你发声。" />
 
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="HeyGem · AI 数字人创作平台" />
-    <meta name="twitter:description" content="3 步生成专业级数字人视频。让 AI 帮你发声。" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <!-- 完全离线：不引用任何外网字体 / CDN / 图标资源，字体走系统字体栈 -->
+    <script>
+      // 首帧应用主题，避免闪烁（默认深色，设计体系 §1.1）
+      try {
+        var t = localStorage.getItem('heygem.theme')
+        var root = document.documentElement
+        if (t === 'light') root.classList.remove('dark')
+        else root.classList.add('dark')
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

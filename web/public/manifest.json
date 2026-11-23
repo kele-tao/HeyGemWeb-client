@@ -4,8 +4,8 @@
   "description": "AI 驱动的数字人创作平台,3 步生成专业级口播视频",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a1a",
-  "theme_color": "#7c3aed",
+  "background_color": "#08090b",
+  "theme_color": "#d9a559",
   "lang": "zh-CN",
   "scope": "/",
   "orientation": "portrait-primary",
@@ -15,20 +15,7 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "multimedia", "photo"],
-  "screenshots": []
+  "categories": ["productivity", "multimedia", "photo"]
 }

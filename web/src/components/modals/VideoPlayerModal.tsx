@@ -1,65 +1,66 @@
 import { useTranslation } from 'react-i18next'
-import { Download, Calendar, Film } from 'lucide-react'
+import { Download, Film } from 'lucide-react'
 import Modal from '@/components/feedback/Modal'
-import { formatDate } from '@/lib/utils'
-import type { GeneratedVideo } from '@/types'
+import StatusBadge from '@/components/ui/StatusBadge'
+import { formatDateTime, formatDuration } from '@/lib/utils'
+import type { Video } from '@/types'
 
 interface Props {
-  video: GeneratedVideo | null
+  video: Video | null
   onClose: () => void
+  onDownload: () => void
 }
 
-export default function VideoPlayerModal({ video, onClose }: Props) {
+export default function VideoPlayerModal({ video, onClose, onDownload }: Props) {
   const { t } = useTranslation()
   if (!video) return null
 
   return (
-    <Modal
-      open={!!video}
-      onClose={onClose}
-      size="2xl"
-      hideClose
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
-        <div className="bg-black aspect-video flex items-center justify-center">
-          {video.videoUrl ? (
+    <Modal open={!!video} onClose={onClose} size="2xl" hideClose>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px]">
+        <div className="flex aspect-video items-center justify-center bg-[rgb(var(--preview))]">
+          {video.stream_url ? (
             <video
-              src={video.videoUrl}
+              src={video.stream_url}
               controls
               autoPlay
-              className="w-full h-full object-contain"
+              className="h-full w-full object-contain"
             />
           ) : (
-            <div className="text-white/60 flex items-center gap-2">
-              <Film className="w-5 h-5" />
-              {t('works.status.processing')}
+            <div className="flex items-center gap-2 text-sm text-white/50">
+              <Film className="h-4 w-4" aria-hidden />
+              {t('works.noStream')}
             </div>
           )}
         </div>
 
-        <div className="p-6 flex flex-col">
+        <div className="flex flex-col p-5">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold break-words mb-3">
+            <div className="mb-2 flex items-center gap-2">
+              <StatusBadge kind="video" status={video.status} />
+            </div>
+            <h2 className="break-words text-lg font-semibold text-[rgb(var(--text))]">
               {video.title}
             </h2>
-            <div className="text-xs text-[rgb(var(--text-muted))] flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              {t('editor.title').includes('Title') ? 'Date' : '创建日期'}: {formatDate(video.date)}
+            <div className="num mt-2 space-y-1 text-[11px] text-[rgb(var(--text-3))]">
+              <div>{formatDateTime(video.created_at)}</div>
+              {video.duration_ms != null && <div>{formatDuration(video.duration_ms)}</div>}
             </div>
+            {video.error_message && (
+              <p className="mt-3 rounded-md border border-[rgb(var(--danger))]/20 bg-[rgb(var(--danger))]/8 p-2 text-[11px] text-[rgb(var(--danger))]">
+                {video.error_message}
+              </p>
+            )}
           </div>
 
-          <div className="space-y-2 mt-6">
-            {video.videoUrl && (
-              <a
-                href={video.videoUrl}
-                download={`${video.title || 'video'}.mp4`}
-                className="btn-primary w-full"
-              >
-                <Download className="w-4 h-4" />
-                {t('common.download')}
-              </a>
+          <div className="mt-5 space-y-2">
+            {video.download_url && (
+              <button type="button" onClick={onDownload} className="btn-primary w-full">
+                <Download className="h-4 w-4" aria-hidden />
+                {t('works.download')}
+              </button>
             )}
-            <button onClick={onClose} className="btn-secondary w-full">
+            <button type="button" onClick={onClose} className="btn-secondary w-full">
               {t('common.close')}
             </button>
           </div>

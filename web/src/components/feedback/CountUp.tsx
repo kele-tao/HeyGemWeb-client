@@ -5,47 +5,44 @@ interface Props {
   value: number
   duration?: number
   className?: string
-  /** 格式化函数,默认原样显示 */
   format?: (n: number) => string
-  /** 后缀,如 % */
   suffix?: string
 }
 
-/**
- * 数字滚动动画 - 当数字变化时平滑过渡
- */
+/** 数字滚动（状态反馈动效，≤ 800ms，reduced-motion 时直接显示终值） */
 export default function CountUp({
   value,
-  duration = 800,
+  duration = 500,
   className,
   format = (n) => Math.round(n).toString(),
   suffix = '',
 }: Props) {
   const [display, setDisplay] = useState(value)
   const fromRef = useRef(value)
-  const startRef = useRef<number | null>(null)
   const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    fromRef.current = display
-    startRef.current = null
-
-    const tick = (ts: number) => {
-      if (startRef.current === null) startRef.current = ts
-      const elapsed = ts - startRef.current
-      const t = Math.min(1, elapsed / duration)
-      // ease-out-cubic
-      const eased = 1 - Math.pow(1 - t, 3)
-      const current = fromRef.current + (value - fromRef.current) * eased
-      setDisplay(current)
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick)
-      }
+    const reduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) {
+      setDisplay(value)
+      fromRef.current = value
+      return
     }
-
+    const from = fromRef.current
+    const start = performance.now()
+    const tick = (ts: number) => {
+      const t = Math.min(1, (ts - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(from + (value - from) * eased)
+      if (t < 1) rafRef.current = requestAnimationFrame(tick)
+      else fromRef.current = value
+    }
     rafRef.current = requestAnimationFrame(tick)
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      fromRef.current = display
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, duration])

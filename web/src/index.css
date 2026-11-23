@@ -2,41 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   设计体系（唯一事实源：ai-docs/前端设计/模块设计/设计_设计体系与应用外壳.md §1.2）
+   颜色一律以 RGB 三元组承载，业务代码通过 rgb(var(--x) / <alpha>) 消费。
+   ========================================================================== */
 @layer base {
   :root {
-    /* Light theme */
-    --bg: 250 250 250;
-    --bg-2: 244 244 245;
+    /* 浅色主题（等价可用的第二套主题） */
+    --bg: 246 245 243;
+    --bg-2: 250 249 247;
     --surface: 255 255 255;
-    --surface-2: 244 244 245;
-    --surface-3: 228 228 231;
-    --text: 24 24 27;
-    --text-2: 63 63 70;
-    --text-muted: 113 113 122;
-    --border: 228 228 231;
-    --border-2: 212 212 216;
-    --ring: 139 92 246;
+    --surface-2: 249 248 246;
+    --surface-3: 242 240 237;
+    --hairline: 226 224 220;
+    --hairline-strong: 203 200 194;
+    --text: 20 20 19;
+    --text-2: 74 74 72;
+    --text-3: 122 122 118;
+    --accent: 138 94 26;
+    --accent-weak: 138 94 26;
+    --accent-contrast: 255 255 255;
+    --success: 28 128 76;
+    --warning: 154 104 22;
+    --danger: 196 49 58;
+    --info: 47 111 158;
 
-    --gradient-start: 139 92 246;
-    --gradient-mid: 59 130 246;
-    --gradient-end: 6 182 212;
+    /* 预览容器恒为近黑，与主题无关 */
+    --preview: 6 7 8;
+    --radius-control: 8px;
+    --radius-panel: 12px;
+    --radius-preview: 14px;
   }
 
   .dark {
-    --bg: 9 9 11;
-    --bg-2: 24 24 27;
-    --surface: 24 24 27;
-    --surface-2: 39 39 42;
-    --surface-3: 63 63 70;
-    --text: 250 250 250;
-    --text-2: 212 212 216;
-    --text-muted: 161 161 170;
-    --border: 39 39 70;
-    --border-2: 63 63 70;
+    --bg: 8 9 11;
+    --bg-2: 12 13 16;
+    --surface: 16 18 21;
+    --surface-2: 22 24 28;
+    --surface-3: 30 33 38;
+    --hairline: 38 41 47;
+    --hairline-strong: 58 62 70;
+    --text: 240 240 238;
+    --text-2: 168 172 179;
+    --text-3: 116 120 128;
+    --accent: 217 165 89;
+    --accent-weak: 217 165 89;
+    --accent-contrast: 12 10 8;
+    --success: 79 169 110;
+    --warning: 216 176 74;
+    --danger: 229 72 77;
+    --info: 91 143 185;
+  }
+
+  /* 旧变量名兼容映射（旧页面仍在用 --border / --text-muted / --ring） */
+  :root,
+  .dark {
+    --border: var(--hairline);
+    --border-2: var(--hairline-strong);
+    --text-muted: var(--text-3);
+    --ring: var(--accent);
   }
 
   * {
-    border-color: rgb(var(--border));
+    border-color: rgb(var(--hairline));
   }
 
   html,
@@ -45,29 +73,49 @@
     height: 100%;
   }
 
-  body {
-    @apply bg-[rgb(var(--bg))] text-[rgb(var(--text))] antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-      'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
-      'Source Han Sans CN', sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  html {
+    color-scheme: light;
+  }
+  .dark html,
+  html.dark {
+    color-scheme: dark;
   }
 
-  /* 数字使用 tabular-nums 对齐 */
+  body {
+    @apply bg-[rgb(var(--bg))] text-[rgb(var(--text))] antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+      'Hiragino Sans GB', 'Microsoft YaHei', 'Source Han Sans CN', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+
+  /* 数字等宽对齐 */
   .num {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
   }
 
-  /* 选中文字 */
   ::selection {
-    background: rgb(var(--ring) / 0.25);
+    background: rgb(var(--accent) / 0.28);
     color: rgb(var(--text));
   }
 
-  /* 滚动条 */
+  /* 焦点环：全站统一强调色 2px，禁止裸 outline: none */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -76,223 +124,271 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgb(var(--border-2) / 0.4);
+    background: rgb(var(--hairline-strong) / 0.5);
     border-radius: 5px;
     border: 2px solid rgb(var(--bg));
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--border-2) / 0.7);
-  }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
+    background: rgb(var(--hairline-strong) / 0.8);
   }
 }
 
 @layer components {
-  /* === 按钮 === */
+  /* === 按钮（§1.6） === */
   .btn {
-    @apply inline-flex items-center justify-center gap-2
-           px-4 py-2 rounded-lg text-sm font-medium
-           transition-all duration-200 ease-out-expo
-           disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
-           focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))];
+    @apply inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium
+           transition-colors duration-150 ease-out-expo
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+           focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))]
+           disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    letter-spacing: 0;
+  }
+  .btn-sm {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .btn-lg {
+    height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
   }
   .btn-primary {
-    @apply btn text-white shadow-glow
-           bg-aurora-1 bg-[length:200%_200%]
-           hover:bg-[position:100%_0] hover:shadow-glow-lg
-           active:scale-[0.98]
-           animate-gradient bg-[length:200%_200%];
+    @apply btn bg-[rgb(var(--accent))] text-[rgb(var(--accent-contrast))]
+           hover:bg-[rgb(var(--accent))] hover:brightness-105 active:brightness-95;
   }
   .btn-secondary {
-    @apply btn bg-[rgb(var(--surface))] text-[rgb(var(--text))]
-           border border-[rgb(var(--border))]
-           hover:bg-[rgb(var(--surface-2))] hover:border-[rgb(var(--border-2))]
-           active:scale-[0.98];
+    @apply btn bg-[rgb(var(--surface-2))] text-[rgb(var(--text))]
+           border border-[rgb(var(--hairline))]
+           hover:border-[rgb(var(--hairline-strong))] active:brightness-95;
   }
   .btn-ghost {
-    @apply btn text-[rgb(var(--text-muted))]
-           hover:bg-[rgb(var(--surface-2))] hover:text-[rgb(var(--text))]
-           active:scale-[0.98];
+    @apply btn bg-transparent text-[rgb(var(--text-2))]
+           hover:bg-[rgb(var(--surface-2))] hover:text-[rgb(var(--text))];
   }
   .btn-danger {
-    @apply btn bg-danger-500 text-white
-           hover:bg-danger-600
-           shadow-sm hover:shadow-md
-           active:scale-[0.98];
+    @apply btn bg-[rgb(var(--danger))] text-white hover:brightness-110 active:brightness-95;
   }
 
-  /* === 卡片 === */
+  /* === 卡片与面板 === */
   .card {
-    @apply bg-[rgb(var(--surface))] border border-[rgb(var(--border))]
-           rounded-xl shadow-soft
-           transition-all duration-200 ease-out-expo;
+    @apply bg-[rgb(var(--surface))] border border-[rgb(var(--hairline))]
+           rounded-xl shadow-panel transition-colors duration-150 ease-out-expo;
   }
+  /* hover 只允许边框升阶与表面升阶，禁止位移 */
   .card-hover {
-    @apply card hover:border-[rgb(var(--border-2))]
-           hover:shadow-md hover:-translate-y-0.5;
+    @apply card hover:border-[rgb(var(--hairline-strong))] hover:bg-[rgb(var(--surface-2))];
+  }
+  .panel {
+    @apply bg-[rgb(var(--surface))] border border-[rgb(var(--hairline))]
+           rounded-xl shadow-panel;
+    padding: 20px;
+  }
+  @media (max-width: 768px) {
+    .panel {
+      padding: 16px;
+    }
   }
 
-  /* === 玻璃感 === */
+  /* === 玻璃（旧类名兼容：改为半透明表面 + 发丝边） === */
   .glass {
-    @apply bg-white/70 dark:bg-ink-900/60 backdrop-blur-xl
-           border border-white/20 dark:border-white/5;
+    @apply bg-[rgb(var(--surface))]/85 border border-[rgb(var(--hairline))];
+  }
+  .panel-dark {
+    @apply bg-[rgb(var(--surface))]/92 backdrop-blur-xl border border-[rgb(var(--hairline))];
   }
 
-  /* === 输入 === */
+  /* === 输入框（§1.6） === */
   .input {
-    @apply w-full px-3.5 py-2.5 rounded-lg
-           bg-[rgb(var(--surface-2))]
-           border border-[rgb(var(--border))]
-           text-[rgb(var(--text))]
-           placeholder:text-[rgb(var(--text-muted))]
-           focus:outline-none focus:ring-2 focus:ring-brand-500/30
-           focus:border-brand-500
-           transition-all duration-200;
+    @apply w-full rounded-md bg-[rgb(var(--surface-2))] text-[rgb(var(--text))]
+           placeholder:text-[rgb(var(--text-3))]
+           border border-[rgb(var(--hairline))]
+           transition-colors duration-150
+           focus:outline-none focus:border-[rgb(var(--accent))]
+           focus:ring-[3px] focus:ring-[rgb(var(--accent))]/15
+           disabled:opacity-45 disabled:cursor-not-allowed;
+    height: 40px;
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+  textarea.input {
+    height: auto;
+    padding-block: 10px;
+    line-height: 1.6;
+  }
+  .input-lg {
+    height: 44px;
+    font-size: 14px;
+  }
+  /* 错误态：边框 danger + 下方 12px 文案 */
+  .input-error,
+  .input[aria-invalid='true'] {
+    @apply border-[rgb(var(--danger))] focus:border-[rgb(var(--danger))]
+           focus:ring-[rgb(var(--danger))]/15;
+  }
+  .form-error {
+    @apply mt-1.5 flex items-start gap-1.5 text-xs text-[rgb(var(--danger))];
+  }
+  .form-label {
+    @apply block text-sm font-medium text-[rgb(var(--text-2))] mb-1.5;
   }
 
-  /* === 标签徽章 === */
+  /* === 徽标（§1.6：弱底 + 状态色文字 + 1px 描边） === */
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5
-           rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full border font-medium;
+    height: 20px;
+    padding-inline: 8px;
+    font-size: 11px;
+    line-height: 1;
   }
   .badge-success {
-    @apply badge bg-success-50 text-success-700
-           dark:bg-success-500/10 dark:text-success-400
-           ring-1 ring-success-500/20;
+    @apply badge text-[rgb(var(--success))] border-[rgb(var(--success))]/20;
+    background-color: rgb(var(--success) / 0.12);
   }
   .badge-warning {
-    @apply badge bg-warning-50 text-warning-600
-           dark:bg-warning-500/10 dark:text-warning-400
-           ring-1 ring-warning-500/20;
+    @apply badge text-[rgb(var(--warning))] border-[rgb(var(--warning))]/20;
+    background-color: rgb(var(--warning) / 0.12);
   }
   .badge-danger {
-    @apply badge bg-danger-50 text-danger-600
-           dark:bg-danger-500/10 dark:text-danger-400
-           ring-1 ring-danger-500/20;
+    @apply badge text-[rgb(var(--danger))] border-[rgb(var(--danger))]/20;
+    background-color: rgb(var(--danger) / 0.12);
   }
   .badge-info {
-    @apply badge bg-info-50 text-info-600
-           dark:bg-info-500/10 dark:text-info-400
-           ring-1 ring-info-500/20;
+    @apply badge text-[rgb(var(--info))] border-[rgb(var(--info))]/20;
+    background-color: rgb(var(--info) / 0.12);
   }
   .badge-brand {
-    @apply badge bg-brand-50 text-brand-700
-           dark:bg-brand-500/10 dark:text-brand-400
-           ring-1 ring-brand-500/20;
+    @apply badge text-[rgb(var(--accent))] border-[rgb(var(--accent))]/20;
+    background-color: rgb(var(--accent) / 0.12);
   }
-
-  /* === 文字渐变 === */
-  .text-gradient {
-    @apply bg-clip-text text-transparent
-           bg-aurora-1 bg-[length:200%_200%] animate-gradient;
+  .badge-neutral {
+    @apply badge text-[rgb(var(--text-2))] border-[rgb(var(--hairline))];
+    background-color: rgb(var(--surface-2));
   }
 
   /* === 骨架屏 === */
   .skeleton {
-    @apply rounded-md
-           bg-gradient-to-r from-[rgb(var(--surface-2))]
-           via-[rgb(var(--surface-3))]
-           to-[rgb(var(--surface-2))]
-           bg-[length:1000px_100%]
-           animate-shimmer-fast;
+    @apply rounded-md bg-[rgb(var(--surface-2))] overflow-hidden relative;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(var(--surface-3) / 0.9) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.6s linear infinite;
   }
 
-  /* === 玻璃面板(深色模式专属) === */
-  .panel-dark {
-    @apply bg-ink-900/60 backdrop-blur-2xl
-           border border-white/5
-           shadow-2xl;
+  /* === 导航项（§1.6） === */
+  .nav-item {
+    @apply relative flex items-center gap-2.5 rounded-md text-sm font-medium
+           text-[rgb(var(--text-2))] transition-colors duration-150
+           hover:bg-[rgb(var(--surface-2))] hover:text-[rgb(var(--text))];
+    height: 36px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+  .nav-item-active {
+    @apply bg-[rgb(var(--surface-2))] text-[rgb(var(--text))];
+  }
+
+  /* === 图标按钮（放在变体之后，用 .btn.btn-icon 覆盖 padding） === */
+  .btn.btn-icon {
+    padding: 0;
+    width: 36px;
+    height: 36px;
+  }
+  .btn.btn-icon > svg {
+    flex-shrink: 0;
+  }
+  .btn.btn-icon.btn-sm {
+    width: 32px;
+    height: 32px;
+  }
+  .btn.btn-icon.btn-lg {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* === 预览容器（近黑底 16:9） === */
+  .preview-frame {
+    @apply relative overflow-hidden bg-[rgb(var(--preview))];
+    border-radius: var(--radius-preview);
+  }
+  .preview-scrim {
+    background: linear-gradient(to top, rgb(0 0 0 / 0.72) 0%, transparent 55%);
+  }
+  .stage-light {
+    background: radial-gradient(
+      ellipse at 50% -10%,
+      rgb(255 255 255 / 0.1) 0%,
+      transparent 60%
+    );
   }
 }
 
 @layer utilities {
-  /* 文本平衡(避免孤字) */
   .text-balance {
     text-wrap: balance;
   }
   .text-pretty {
     text-wrap: pretty;
   }
-
-  /* 自定义滚动条(细) */
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
-
-  /* GPU 加速 */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
   .gpu {
     transform: translateZ(0);
-    will-change: transform;
   }
-
-  /* 防止选中文本(用于按钮等) */
   .no-select {
     user-select: none;
   }
 }
 
-/* === 关键动画 keyframes(在 Tailwind 之外) === */
-@keyframes shine-sweep {
+/* 旧动画 keyframes 保留定义以满足残留类名，但不再驱动任何循环装饰 */
+@keyframes shimmer {
   0% {
-    transform: translateX(-100%) skewX(-12deg);
+    background-position: -1000px 0;
   }
   100% {
-    transform: translateX(300%) skewX(-12deg);
+    background-position: 1000px 0;
   }
 }
-.shine-effect {
-  position: relative;
-  overflow: hidden;
+@keyframes progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 .shine-effect::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.15) 50%,
-    transparent 70%
-  );
-  animation: shine-sweep 3s ease-in-out infinite;
+  content: none;
 }
 
-/* 视频卡 hover 时光泽扫过 */
-@keyframes card-shine {
-  0% {
-    transform: translateX(-100%) skewX(-15deg);
-    opacity: 0;
+/* 减少动态偏好：关闭全部非必要动效（§1.5） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
-  50% {
-    opacity: 1;
+  .skeleton::after {
+    animation: none !important;
+    background: rgb(var(--surface-3) / 0.6);
   }
-  100% {
-    transform: translateX(200%) skewX(-15deg);
-    opacity: 0;
-  }
-}
-.card-shine {
-  position: relative;
-  overflow: hidden;
-}
-.card-shine::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%);
-  pointer-events: none;
-}
-.card-shine:hover::after {
-  animation: card-shine 0.8s ease-out;
 }

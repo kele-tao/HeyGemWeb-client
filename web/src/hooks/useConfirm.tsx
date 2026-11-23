@@ -39,15 +39,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
       {state && (
-        <Modal open onClose={() => handleClose(false)} size="sm" hideClose>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-2 text-balance">
-              {state.title}
-            </h3>
-            <p className="text-sm text-[rgb(var(--text-muted))] leading-relaxed text-pretty">
+        <Modal open onClose={() => handleClose(false)} size="sm" hideClose title={state.title}>
+          <div className="p-5">
+            <p className="text-sm text-[rgb(var(--text-2))] leading-relaxed text-pretty">
               {state.message}
             </p>
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-2 mt-5">
               <button
                 onClick={() => handleClose(false)}
                 className="btn-secondary"
