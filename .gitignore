@@ -125,6 +125,7 @@ backend/huiying_ai_db.json
 backend/static_avatars/
 backend/static_files/
 backend/data/
+backend/data-*/
 backend/.secret_key
 *.db-wal
 *.db-shm

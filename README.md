@@ -11,6 +11,20 @@
 
 ---
 
+## 🖼️ 界面预览
+
+> 下列截图由 `backend/scripts/e2e_smoke.py` 与 Playwright 在真实运行环境中抓取（mock 模式）。
+
+| 登录 / 注册 | 工作台（首跑引导） | 作品库空状态 |
+|------|--------|----------|
+| ![登录](img/v3-login.png) | ![工作台](img/v3-home-empty.png) | ![作品库](img/v3-works.png) |
+
+| 移动端 390 宽 | 数字人 |
+|------|--------|
+| ![移动端](img/v3-home-mobile.png) | ![数字人](img/v3-avatars-filled.png) |
+
+---
+
 ## ✨ 核心特性
 
 **产品能力**
