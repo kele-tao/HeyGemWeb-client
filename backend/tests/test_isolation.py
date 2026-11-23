@@ -78,7 +78,11 @@ async def test_media_signature_is_bound_to_owner(client, user_factory, media_fac
 async def test_progress_endpoint_ignores_foreign_ids(client, user_factory, media_factory):
     alice = await user_factory()
     bob = await user_factory()
+    from .helpers import wait_for_status
+
     avatar = await create_avatar(client, alice, media_factory("video"))
+    # 必须等数字人 ready 才能提交作品（processing 时提交按契约返回 409）
+    avatar = await wait_for_status(client, alice, "avatars", avatar["id"], ("ready",))
     audio = media_factory("audio")
     with open(audio, "rb") as fh:
         video = await client.post(
@@ -87,6 +91,7 @@ async def test_progress_endpoint_ignores_foreign_ids(client, user_factory, media
             data={"title": "A 的作品", "avatar_id": avatar["id"]},
             files={"audio_file": ("audio.wav", fh, "audio/wav")},
         )
+    assert video.status_code == 201, video.text
     video_id = video.json()["id"]
     resp = await client.get(f"/api/videos/progress?ids={video_id}", headers=bob["headers"])
     assert resp.status_code == 200

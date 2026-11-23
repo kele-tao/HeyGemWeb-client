@@ -22,6 +22,34 @@ from ..services import job_service
 TERMINAL = ("succeeded", "failed", "canceled")
 
 
+async def fail_resource(session, row, code: str, message: str) -> None:
+    """任务终态失败时同步资源状态（同一事务，避免"任务失败但资源仍处理中"）。"""
+    from ..models import Avatar, Video, Voice
+
+    if row.video_id:
+        video = await session.get(Video, row.video_id)
+        if video is not None and video.status in ("queued", "processing"):
+            video.status = "failed"
+            video.error_code = code
+            video.error_message = message
+            video.completed_at = utcnow()
+            video.updated_at = utcnow()
+    elif row.avatar_id:
+        avatar = await session.get(Avatar, row.avatar_id)
+        if avatar is not None and avatar.status == "processing":
+            avatar.status = "failed"
+            avatar.error_code = code
+            avatar.error_message = message
+            avatar.updated_at = utcnow()
+    elif row.voice_id:
+        voice = await session.get(Voice, row.voice_id)
+        if voice is not None and voice.status == "training":
+            voice.status = "failed"
+            voice.error_code = code
+            voice.error_message = message
+            voice.updated_at = utcnow()
+
+
 class JobQueue:
     def __init__(self, db: Database, settings: Settings, worker_id: str) -> None:
         self.db = db
@@ -171,6 +199,8 @@ class JobQueue:
             else:
                 row.status = "failed"
                 row.finished_at = utcnow()
+                # 终态失败必须同步把所属资源置为 failed，否则资源会永远停在 processing/training
+                await fail_resource(session, row, code, message)
                 logger.error("任务最终失败 job_id=%s code=%s attempt=%s", row.id, code, row.attempt)
 
     # ------------------------------------------------------------ 恢复
@@ -202,6 +232,7 @@ class JobQueue:
                     row.error_code = JOB_INTERRUPTED
                     row.error_message = "任务被中断且已达最大重试次数"
                     row.finished_at = now
+                    await fail_resource(session, row, JOB_INTERRUPTED, row.error_message)
                 recovered += 1
         if recovered:
             logger.warning("回收过期任务 %s 条", recovered)
@@ -296,6 +327,7 @@ class JobWorker:
                     row.error_code = JOB_INTERRUPTED
                     row.error_message = "服务停机导致任务中断"
                     row.finished_at = now
+                    await fail_resource(session, row, JOB_INTERRUPTED, row.error_message)
                 count += 1
         if count:
             logger.warning("优雅停机交还任务 %s 条", count)

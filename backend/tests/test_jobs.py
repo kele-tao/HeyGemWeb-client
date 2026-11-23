@@ -239,3 +239,73 @@ async def test_backoff_sequence(settings_fixture=None):
     assert backoff_seconds(settings, 2) == 60
     assert backoff_seconds(settings, 3) == 300
     assert backoff_seconds(settings, 9) == 300
+
+@pytest.mark.asyncio
+async def test_terminal_failure_marks_resource_failed(app_instance):
+    """任务重试耗尽后，所属资源必须同步置为 failed（不允许资源永远停在 training）。"""
+    from app.jobs.queue import JobQueue
+    from app.models import Avatar, Job, User, Voice
+    from app.utils import new_id, utcnow
+
+    settings = app_instance.state.settings
+    db = app_instance.state.db
+    user_id, voice_id, job_id = new_id(), new_id(), new_id()
+    async with db.session() as session:
+        session.add(
+            User(
+                id=user_id,
+                email=f"{user_id[:8]}@example.com",
+                password_hash="x",
+                status="active",
+                created_at=utcnow(),
+                updated_at=utcnow(),
+                password_changed_at=utcnow(),
+            )
+        )
+        await session.flush()
+        session.add(
+            Voice(
+                id=voice_id,
+                user_id=user_id,
+                name="训练失败声音",
+                status="training",
+                created_at=utcnow(),
+                updated_at=utcnow(),
+            )
+        )
+        await session.flush()
+        session.add(
+            Job(
+                id=job_id,
+                kind="voice_train",
+                user_id=user_id,
+                voice_id=voice_id,
+                status="running",
+                attempt=3,
+                max_attempts=3,
+                run_after=utcnow(),
+                lease_owner="w1",
+                lease_expires_at=utcnow(),
+                created_at=utcnow(),
+                updated_at=utcnow(),
+            )
+        )
+        await session.flush()
+
+    async with db.session() as session:
+        job = await session.get(Job, job_id)
+        assert job is not None
+
+    from app.errors import AppError
+
+    queue = JobQueue(db, settings, "test")
+    await queue.finish_error(job, AppError("AI_SERVICE_ERROR", "AI 服务返回异常，请稍后重试"))
+
+    async with db.session() as session:
+        voice = await session.get(Voice, voice_id)
+        assert voice is not None
+        assert voice.status == "failed"
+        assert voice.error_code == "AI_SERVICE_ERROR"
+        assert voice.error_message
+        stored_job = await session.get(Job, job_id)
+        assert stored_job is not None and stored_job.status == "failed"
