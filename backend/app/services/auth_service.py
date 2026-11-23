@@ -168,6 +168,13 @@ async def revoke_all_sessions(session: AsyncSession, user_id: str) -> None:
     )
 
 
+async def revoke_session(session: AsyncSession, session_id: str) -> None:
+    """按会话 ID 撤销（退出登录时访问令牌没有 Cookie 的兜底路径）。"""
+    record = await session.get(AuthSession, session_id)
+    if record is not None and record.revoked_at is None:
+        record.revoked_at = utcnow()
+
+
 async def logout(session: AsyncSession, raw_refresh: str | None) -> None:
     if not raw_refresh:
         return

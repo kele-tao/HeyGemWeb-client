@@ -44,6 +44,7 @@ async def create_avatar(
     row = await avatar_service.create_avatar(
         session, settings, storage, ctx.user_id, name, video_file, video_file.filename or "video.mp4"
     )
+    await session.commit()
     return get_serializer(request).avatar(row)
 
 
@@ -67,6 +68,7 @@ async def rename_avatar(
     session: AsyncSession = Depends(db_session),
 ) -> AvatarOut:
     row = await avatar_service.rename_avatar(session, ctx.user_id, avatar_id, payload.name)
+    await session.commit()
     return get_serializer(request).avatar(row)
 
 

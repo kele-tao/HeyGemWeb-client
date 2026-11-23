@@ -46,6 +46,7 @@ async def create_voice(
     row = await voice_service.create_voice(
         session, settings, storage, ctx.user_id, name, audio_file, audio_file.filename or "audio.wav"
     )
+    await session.commit()
     return get_serializer(request).voice(row)
 
 
@@ -69,6 +70,7 @@ async def rename_voice(
     session: AsyncSession = Depends(db_session),
 ) -> VoiceOut:
     row = await voice_service.rename_voice(session, ctx.user_id, voice_id, payload.name)
+    await session.commit()
     return get_serializer(request).voice(row)
 
 
@@ -103,6 +105,7 @@ async def audition_voice(
         session, settings, storage, provider, ctx.user_id, voice, payload.text
     )
     url = storage.sign("audition", cache.id, ctx.user_id)
+    await session.commit()
     return AuditionOut(url=url, cached=hit)
 
 

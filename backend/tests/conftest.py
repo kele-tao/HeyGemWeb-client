@@ -45,13 +45,16 @@ def _env():
         shutil.rmtree(path, ignore_errors=True)
 
 
-def _reset_database() -> None:
-    from app.config import get_settings
+def isolate_storage() -> None:
+    """每个用例独立 DATA_ROOT 与数据库文件。
 
-    for suffix in ("", "-wal", "-shm"):
-        candidate = Path(str(get_settings().db_path) + suffix)
-        if candidate.exists():
-            candidate.unlink()
+    不复用同一个 db 文件：Windows 上 SQLite 句柄释放有延迟，复用+删除会偶发 WinError 32。
+    """
+    root = _root()
+    os.environ["HEYGEM_DATA_ROOT"] = str(root)
+    os.environ["HEYGEM_DATABASE_URL"] = (
+        f"sqlite+aiosqlite:///{(root / 'db' / 'app.db').as_posix()}"
+    )
 
 
 @pytest_asyncio.fixture()
@@ -59,13 +62,17 @@ async def app_instance():
     """每个测试独立的 app（独立数据库 + 独立 worker）。"""
     from app.config import reset_settings_cache
 
+    isolate_storage()
     reset_settings_cache()
-    _reset_database()
     from app.main import create_app
 
     app = create_app()
     async with app.router.lifespan_context(app):
-        yield app
+        try:
+            yield app
+        finally:
+            # 先释放连接池，避免下个用例删除 SQLite 文件时被句柄占用
+            await app.state.db.dispose()
 
 
 @pytest_asyncio.fixture()

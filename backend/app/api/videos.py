@@ -92,9 +92,11 @@ async def create_video(
         filename=audio_file.filename or "audio.wav",
     )
     positions = await video_service.queue_positions(session, [row])
-    return get_serializer(request).video(
+    payload = get_serializer(request).video(
         row, queue_position=positions.get(row.id), request_base=request_base(request)
     )
+    await session.commit()
+    return payload
 
 
 @router.get("/{video_id}", response_model=VideoOut)
@@ -120,7 +122,9 @@ async def rename_video(
     session: AsyncSession = Depends(db_session),
 ) -> VideoOut:
     row = await video_service.rename_video(session, ctx.user_id, video_id, payload.title)
-    return get_serializer(request).video(row, request_base=request_base(request))
+    out = get_serializer(request).video(row, request_base=request_base(request))
+    await session.commit()
+    return out
 
 
 @router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -147,9 +151,11 @@ async def retry_video(
     settings = request.app.state.settings
     row = await video_service.retry_video(session, settings, ctx.user_id, video_id)
     positions = await video_service.queue_positions(session, [row])
-    return get_serializer(request).video(
+    out = get_serializer(request).video(
         row, queue_position=positions.get(row.id), request_base=request_base(request)
     )
+    await session.commit()
+    return out
 
 
 @router.post("/{video_id}/share", response_model=ShareOut)
@@ -161,7 +167,11 @@ async def create_share(
 ) -> ShareOut:
     token = await video_service.share_video(session, ctx.user_id, video_id)
     base = request_base(request)
-    return ShareOut(share_token=token, share_url=f"{base}/api/share/{token}" if base else f"/api/share/{token}")
+    out = ShareOut(
+        share_token=token, share_url=f"{base}/api/share/{token}" if base else f"/api/share/{token}"
+    )
+    await session.commit()
+    return out
 
 
 @router.delete("/{video_id}/share", status_code=status.HTTP_204_NO_CONTENT)
@@ -171,4 +181,5 @@ async def revoke_share(
     session: AsyncSession = Depends(db_session),
 ) -> Response:
     await video_service.revoke_share(session, ctx.user_id, video_id)
+    await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

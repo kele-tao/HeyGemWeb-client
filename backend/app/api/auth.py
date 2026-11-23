@@ -15,7 +15,7 @@ from ..schemas.auth import (
     TokenResponse,
     UserOut,
 )
-from ..security import CurrentAuth, REFRESH_COOKIE_NAME
+from ..security import CurrentAuth, REFRESH_COOKIE_NAME, decode_access_token
 from ..services import auth_service
 from ..utils import logger
 from .deps import db_session
@@ -73,6 +73,7 @@ async def register(
     result = await auth_service.register(
         session, settings, payload.email, payload.password, **_client_meta(request)
     )
+    await session.commit()
     _set_refresh_cookie(response, request, settings, result.pop("_refresh_token"))
     return AuthResponse(**result)
 
@@ -92,6 +93,7 @@ async def login(
     result = await auth_service.login(
         session, settings, payload.email, payload.password, **_client_meta(request)
     )
+    await session.commit()
     _set_refresh_cookie(response, request, settings, result.pop("_refresh_token"))
     return AuthResponse(**result)
 
@@ -105,6 +107,7 @@ async def refresh(
     settings: Settings = request.app.state.settings
     token = request.cookies.get(REFRESH_COOKIE_NAME)
     result = await auth_service.refresh(session, settings, token)
+    await session.commit()
     _set_refresh_cookie(response, request, settings, result.pop("_refresh_token"))
     result.pop("user", None)
     return TokenResponse(**result)
@@ -118,6 +121,28 @@ async def logout(
 ) -> Response:
     token = request.cookies.get(REFRESH_COOKIE_NAME)
     await auth_service.logout(session, token)
+
+    # Cookie 缺失（如跨站被拦截）时，退化为按访问令牌的 sid 撤销当前会话，
+    # 保证"退出登录"在任何情况下都能让旧访问令牌立即失效。
+    if not token:
+        header = request.headers.get("authorization") or ""
+        scheme, _, bearer = header.partition(" ")
+        if scheme.lower() == "bearer" and bearer.strip():
+            settings = request.app.state.settings
+            try:
+                payload = decode_access_token(settings, bearer.strip())
+            except AppError:
+                payload = None
+            logger.info("logout bearer fallback sid=%s", payload.get("sid") if payload else None)
+            if payload:
+                await auth_service.revoke_session(session, payload["sid"])
+
+    await session.commit()
+    logger.info(
+        "logout cookie_present=%s bearer_present=%s",
+        bool(token),
+        bool(request.headers.get("authorization")),
+    )
     _clear_refresh_cookie(response)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
@@ -138,6 +163,7 @@ async def change_password(
     await auth_service.change_password(
         session, ctx.user, ctx.session.id, payload.old_password, payload.new_password
     )
+    await session.commit()
     logger.info("修改密码成功 user_id=%s", ctx.user_id)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
