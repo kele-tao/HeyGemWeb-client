@@ -124,6 +124,10 @@ img/design-*.png
 backend/huiying_ai_db.json
 backend/static_avatars/
 backend/static_files/
+backend/data/
+backend/.secret_key
+*.db-wal
+*.db-shm
 
 # Docker volumes
 deploy/volumes/
@@ -133,3 +137,6 @@ deploy/volumes/
 .env.*.local
 config.local.yaml
 secrets.yaml
+
+# 内部 AI 协作文档区：只本地保留，不进入版本库
+ai-docs/
